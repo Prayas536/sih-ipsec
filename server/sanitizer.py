@@ -16,7 +16,10 @@ TELEMETRY_FIELDS = frozenset({
     "initiator_spi", "responder_spi", "inbound_spi", "outbound_spi",
     "spi", "child_sa_spi", "protocol", "reqid", "local_host", "remote_host",
     "established", "encr", "integ", "prf", "dh", "mode", "rekey_time",
-    "reauth_time", "bytes_in", "bytes_out", "packets_in", "packets_out",
+    "life_time", "reauth_time", "esn", "esn_in", "esn_out",
+    "replay_protection", "replay_window_in", "replay_window_out",
+    "xfrm_spi_in", "xfrm_spi_out",
+    "bytes_in", "bytes_out", "packets_in", "packets_out",
 })
 FEATURE_FIELDS = frozenset({
     "packet_count", "total_bytes", "flow_duration", "packets_per_second",

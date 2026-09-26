@@ -5,6 +5,7 @@ import time
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
+from unittest.mock import patch
 
 from correlation import correlate_spi
 from repository import AnalysisRepository, compute_gateway_status
@@ -353,6 +354,254 @@ class GatewayApiHttpIntegrationTests(unittest.TestCase):
                 return exc.code, json.loads(err_body.decode("utf-8"))
             except Exception:
                 return exc.code, err_body
+
+    def test_gateway_report_uses_only_fresh_spi_bound_child_evidence(self):
+        import api_server
+
+        gateway, raw_token, _ = api_server.REPOSITORY.create_gateway("Evidence Report GW")
+        gateway_id = gateway["gateway_id"]
+        api_server.REPOSITORY.enroll_gateway(raw_token)
+        api_server.REPOSITORY.record_gateway_telemetry(gateway_id, {
+            "status": "CONFIRMED",
+            "collected_at": datetime.now(timezone.utc).isoformat(),
+            "telemetry": [
+                {
+                    "protocol": "ESP",
+                    "inbound_spi": "0x00001234",
+                    "outbound_spi": "0x00005678",
+                    "mode": "tunnel",
+                    "state": "INSTALLED",
+                    "encr": "AES_GCM_16_256",
+                    "integ": "HMAC_SHA2_256_128",
+                    "dh": "MODP_2048",
+                    "esn": True,
+                    "xfrm_spi_in": "0x1234",
+                    "xfrm_spi_out": "0x5678",
+                    "replay_window_in": 32,
+                    "replay_window_out": 0,
+                    "esn_in": False,
+                    "esn_out": False,
+                    "local_ts": "10.0.0.0/24",
+                    "remote_ts": "10.1.0.0/24",
+                    "rekey_time": 120,
+                    "life_time": 3600,
+                },
+                {
+                    "protocol": "ESP",
+                    "inbound_spi": "not-a-spi",
+                    "mode": "unknown-mode",
+                    "encr": "NOT_AES_256",
+                    "integ": "NOT_SHA256",
+                    "rekey_time": "soon",
+                    "life_time": -1,
+                },
+                {
+                    "protocol": "ESP",
+                    "inbound_spi": "0x00009999",
+                    "outbound_spi": "0x00008888",
+                    "xfrm_spi_in": "0x00001111",
+                    "xfrm_spi_out": "0x00002222",
+                    "replay_window_in": 128,
+                    "replay_window_out": 128,
+                    "esn_in": True,
+                    "esn_out": True,
+                },
+            ],
+        })
+
+        status, report = self._http_request("GET", f"/api/gateways/{gateway_id}/report")
+        self.assertEqual(status, 200)
+        child_evidence = report["securityAssessment"]["childSaEvidence"]
+        score = report["securityAssessment"]["score"]
+        self.assertEqual(score["value"], 43)
+        self.assertEqual(score["evidenceCoveragePercent"], 50)
+        self.assertEqual(score["status"], "PARTIAL")
+        self.assertIn("CHILD_SA_REPLAY_WINDOW", [finding["category"] for finding in report["securityAssessment"]["findings"]])
+        self.assertIn("CHILD_SA_LIFETIME", [item["id"] for item in report["securityAssessment"]["configurationRecommendations"]])
+        valid = next(item for item in child_evidence if item["observed_spis"] == ["0x1234", "0x5678"])
+        invalid = next(item for item in child_evidence if item["sa_identity_status"] == "NOT_DETERMINABLE")
+        self.assertEqual(valid["fields"]["mode"]["value"], "TUNNEL")
+        self.assertEqual(valid["fields"]["integ"]["status"], "CONFIRMED")
+        self.assertEqual(valid["fields"]["rekey_time"]["value"], 120)
+        self.assertEqual(valid["fields"]["life_time"]["value"], 3600)
+        self.assertEqual(valid["fields"]["dh_group"]["value"], "MODP_2048")
+        self.assertTrue(valid["fields"]["pfs"]["value"])
+        self.assertIs(valid["fields"]["esn"]["value"], True)
+        self.assertEqual(valid["fields"]["replay_window_in"]["value"], 32)
+        self.assertEqual(valid["fields"]["replay_window_out"]["value"], 0)
+        self.assertIs(valid["fields"]["replay_protection"]["value"], True, valid)
+        self.assertIs(valid["fields"]["esn_in"]["value"], False)
+        self.assertIs(valid["fields"]["esn_out"]["value"], False)
+        self.assertEqual(invalid["fields"]["mode"]["status"], "NOT_DETERMINABLE")
+        self.assertEqual(invalid["fields"]["encr"]["status"], "NOT_DETERMINABLE")
+        self.assertEqual(invalid["fields"]["integ"]["status"], "NOT_DETERMINABLE")
+        self.assertEqual(invalid["fields"]["rekey_time"]["status"], "NOT_DETERMINABLE")
+        self.assertEqual(invalid["fields"]["life_time"]["status"], "NOT_DETERMINABLE")
+        self.assertEqual(invalid["fields"]["pfs"]["status"], "NOT_DETERMINABLE")
+        self.assertEqual(invalid["fields"]["esn"]["status"], "NOT_DETERMINABLE")
+        mismatched = next(item for item in child_evidence if "0x9999" in item["observed_spis"])
+        self.assertEqual(mismatched["fields"]["replay_window_in"]["status"], "NOT_DETERMINABLE")
+        self.assertEqual(mismatched["fields"]["replay_protection"]["status"], "NOT_DETERMINABLE")
+        self.assertFalse(any(
+            finding.get("category") == "CHILD_SA_REPLAY_WINDOW" and finding.get("value") == "128 packets"
+            for finding in report["securityAssessment"]["findings"]
+        ))
+        self.assertFalse(any(
+            finding.get("value") == "NOT_AES_256" and finding.get("severity") == "Pass"
+            for finding in report["securityAssessment"]["findings"]
+        ))
+
+        stale = api_server._build_child_sa_evidence(
+            [{"inbound_spi": "0x1234", "mode": "tunnel"}],
+            fresh=False,
+            collected_at="2020-01-01T00:00:00Z",
+        )[0]
+        self.assertEqual(stale["fields"]["mode"]["status"], "NOT_DETERMINABLE")
+        self.assertEqual(stale["spi"], None)
+
+    def test_gateway_ai_report_returns_validated_narrative_and_deterministic_matrix(self):
+        import api_server
+
+        gateway, raw_token, _ = api_server.REPOSITORY.create_gateway("AI Report GW")
+        gateway_id = gateway["gateway_id"]
+        api_server.REPOSITORY.enroll_gateway(raw_token)
+        api_server.REPOSITORY.record_gateway_telemetry(gateway_id, {
+            "status": "CONFIRMED",
+            "telemetry": [
+                {"version": 2, "encr": "AES_GCM_16_256", "integ": "HMAC_SHA2_256_128", "dh": "MODP_3072"},
+                {
+                    "protocol": "ESP", "inbound_spi": "0x1234", "outbound_spi": "0x5678",
+                    "encr": "AES_GCM_16_256", "integ": "AEAD", "dh": "MODP_2048",
+                    "replay_window_in": 64, "xfrm_spi_in": "0x1234",
+                    "replay_protection": True, "esn_in": False,
+                },
+            ],
+        })
+        api_server._AI_REPORT_LAST_REQUEST.clear()
+        narrative = {
+            "executive_summary": "Verified controls are summarized.",
+            "technical_interpretation": "Only server-provided evidence is discussed.",
+            "recommendation_notes": [],
+        }
+        with patch.dict("os.environ", {"GROQ_API_KEY": "test-key"}), patch(
+            "api_server.generate_groq_narrative", return_value=narrative
+        ) as generate:
+            status, report = self._http_request("POST", f"/api/gateways/{gateway_id}/ai-report", {})
+
+        self.assertEqual(status, 200)
+        self.assertEqual(report["source"], "GROQ_LLM")
+        self.assertEqual(report["narrative"], narrative)
+        self.assertTrue(report["configurationRecommendations"])
+        self.assertEqual(report["score"]["status"], "PARTIAL")
+        context = generate.call_args.args[0]
+        serialized_context = json.dumps(context)
+        self.assertNotIn(gateway_id, serialized_context)
+        self.assertNotIn("0x1234", serialized_context)
+
+    def test_gateway_ai_report_requires_key_without_consuming_cooldown(self):
+        import api_server
+
+        gateway, _, _ = api_server.REPOSITORY.create_gateway("No Key AI Report GW")
+        api_server._AI_REPORT_LAST_REQUEST.pop("127.0.0.1", None)
+        with patch.dict("os.environ", {"GROQ_API_KEY": ""}):
+            status, response = self._http_request(
+                "POST", f"/api/gateways/{gateway['gateway_id']}/ai-report", {}
+            )
+        self.assertEqual(status, 503)
+        self.assertEqual(response["error"], "GROQ_API_KEY_NOT_CONFIGURED")
+        self.assertNotIn("127.0.0.1", api_server._AI_REPORT_LAST_REQUEST)
+
+    def test_gateway_aes_cbc_is_a_hardening_note_not_a_vulnerability_claim(self):
+        import api_server
+
+        gateway, raw_token, _ = api_server.REPOSITORY.create_gateway("CBC Score GW")
+        gateway_id = gateway["gateway_id"]
+        api_server.REPOSITORY.enroll_gateway(raw_token)
+        api_server.REPOSITORY.record_gateway_telemetry(gateway_id, {
+            "status": "CONFIRMED",
+            "telemetry": [
+                {"version": 2, "encr": "AES_CBC_256", "integ": "HMAC_SHA2_256_128", "dh": "MODP_3072"},
+                {
+                    "protocol": "ESP", "inbound_spi": "0x1234", "outbound_spi": "0x5678",
+                    "encr": "AES_CBC_256", "integ": "HMAC_SHA2_256_128", "dh": "MODP_2048",
+                    "xfrm_spi_in": "0x1234", "replay_window_in": 64, "replay_protection": True,
+                },
+            ],
+        })
+        status, report = self._http_request("GET", f"/api/gateways/{gateway_id}/report")
+        self.assertEqual(status, 200)
+        cbc_findings = [
+            item for item in report["securityAssessment"]["findings"]
+            if item["category"] in {"IKE_ENCRYPTION", "CHILD_SA_ENCRYPTION"}
+        ]
+        self.assertEqual(len(cbc_findings), 2)
+        self.assertTrue(all(item["severity"] == "Low" for item in cbc_findings))
+        self.assertTrue(all("not evidence" in item["detail"] for item in cbc_findings))
+
+    def test_testbed_apply_requires_control_token_and_uses_agent_queue(self):
+        import api_server
+
+        gateway, enrollment_token, _ = api_server.REPOSITORY.create_gateway("Testbed Queue GW")
+        enrollment = api_server.REPOSITORY.enroll_gateway(enrollment_token)
+        gateway_id = gateway["gateway_id"]
+        agent_token = enrollment["agent_token"]
+        control_token = "local-testbed-control-token"
+        settings = {
+            "ikeVersion": "IKEv2",
+            "mode": "Tunnel Mode",
+            "cipher": "AES-256-GCM",
+            "dhGroup": 19,
+            "pfs": True,
+            "ipVersion": "IPv4",
+            "localAddress": "172.20.0.2",
+            "remoteAddress": "172.20.0.3",
+            "localId": "peerB",
+            "remoteId": "peerA",
+            "authMethod": "psk",
+            "localTs": "172.20.0.2/32",
+            "remoteTs": "172.20.0.3/32",
+            "trafficType": "Video Streaming",
+        }
+
+        with patch.dict("os.environ", {"VPN_ANALYZER_TESTBED_TOKEN": control_token}):
+            status, unauthorized = self._http_request(
+                "POST", f"/api/gateways/{gateway_id}/testbed", {"confirmed": True, "settings": settings}
+            )
+            self.assertEqual(status, 401)
+            self.assertEqual(unauthorized["error"], "UNAUTHORIZED")
+
+            status, queued = self._http_request(
+                "POST",
+                f"/api/gateways/{gateway_id}/testbed",
+                {"confirmed": True, "settings": settings},
+                headers={"X-Testbed-Token": control_token},
+            )
+            self.assertEqual(status, 202)
+            self.assertEqual(queued["status"], "PENDING")
+
+            status, next_job = self._http_request(
+                "POST", f"/api/gateways/{gateway_id}/testbed/next", {},
+                headers={"Authorization": f"Bearer {agent_token}"},
+            )
+            self.assertEqual(status, 200)
+            self.assertEqual(next_job["job"]["settings"], settings)
+            self.assertTrue(next_job["job"]["connectionName"].startswith("lab_testbed_"))
+
+            status, completed = self._http_request(
+                "POST",
+                f"/api/gateways/{gateway_id}/testbed/{queued['jobId']}/result",
+                {"status": "SUCCEEDED", "message": "CONFIGURATION_LOADED_AND_TUNNEL_INITIATION_ACCEPTED"},
+                headers={"Authorization": f"Bearer {agent_token}"},
+            )
+            self.assertEqual(status, 200)
+            self.assertEqual(completed["status"], "SUCCEEDED")
+
+            status, final = self._http_request(
+                "GET", f"/api/gateways/{gateway_id}/testbed/{queued['jobId']}",
+                headers={"X-Testbed-Token": control_token},
+            )
+            self.assertEqual(status, 200)
+            self.assertEqual(final["status"], "SUCCEEDED")
 
     def test_http_gateway_full_lifecycle(self):
         # 1. POST /api/gateways -> register

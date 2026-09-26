@@ -653,6 +653,7 @@ export default function App() {
         isOpen={isTestbedOpen}
         onClose={() => setIsTestbedOpen(false)}
         onLoadCustomScenario={handleLoadCustomScenario}
+        gateways={availableGateways}
       />
 
       <GatewayDetailsModal

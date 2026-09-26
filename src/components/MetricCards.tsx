@@ -16,6 +16,14 @@ export const MetricCards: React.FC<MetricCardsProps> = ({
   actualTrafficType,
 }) => {
   const getRatingBadge = (rating: string, score: number) => {
+    if (rating === 'Not Rated') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-slate-50 text-slate-600 border border-slate-200">
+          <ShieldAlert className="w-3.5 h-3.5 text-slate-500" />
+          <span>NOT RATED</span>
+        </span>
+      );
+    }
     if (score >= 80) {
       return (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -48,7 +56,7 @@ export const MetricCards: React.FC<MetricCardsProps> = ({
         <div id="card-security-score" className="p-4 flex flex-col justify-between space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-              Security Score
+              Evidence-Adjusted Score
             </span>
             {getRatingBadge(scorecard.rating, scorecard.totalScore)}
           </div>
@@ -60,23 +68,30 @@ export const MetricCards: React.FC<MetricCardsProps> = ({
               <span className="text-sm font-medium text-slate-400">/ 100</span>
             </div>
             <div className="mt-2 flex items-center gap-1.5 flex-wrap text-[11px]">
-              <span
-                className={`px-1.5 py-0.2 rounded font-mono ${
-                  scorecard.complianceNist
-                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                    : 'bg-rose-50 text-rose-700 border border-rose-200'
-                }`}
-              >
-                {scorecard.complianceNist ? 'NIST SP 800-77: Pass' : 'NIST: Non-Compliant'}
+              <span className={`px-1.5 py-0.2 rounded font-mono border ${scorecard.assessmentStatus === 'COMPLETE' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                Evidence: {scorecard.evidenceCoveragePercent}% ({scorecard.assessmentStatus.toLowerCase()})
               </span>
               <span
                 className={`px-1.5 py-0.2 rounded font-mono ${
-                  scorecard.complianceRfc8221
+                  scorecard.complianceNist === true
                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                    : 'bg-rose-50 text-rose-700 border border-rose-200'
+                    : scorecard.complianceNist === false
+                    ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                    : 'bg-slate-50 text-slate-600 border border-slate-200'
                 }`}
               >
-                {scorecard.complianceRfc8221 ? 'RFC 8221: Pass' : 'RFC 8221: Deprecated'}
+                {scorecard.complianceNist === null ? 'NIST: Not verified' : scorecard.complianceNist ? 'NIST SP 800-77: Pass' : 'NIST: Non-Compliant'}
+              </span>
+              <span
+                className={`px-1.5 py-0.2 rounded font-mono ${
+                  scorecard.complianceRfc8221 === true
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    : scorecard.complianceRfc8221 === false
+                    ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                    : 'bg-slate-50 text-slate-600 border border-slate-200'
+                }`}
+              >
+                {scorecard.complianceRfc8221 === null ? 'RFC 8221: Not verified' : scorecard.complianceRfc8221 ? 'RFC 8221: Pass' : 'RFC 8221: Deprecated'}
               </span>
             </div>
           </div>

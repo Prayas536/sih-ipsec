@@ -132,7 +132,8 @@ export const SecurityAssessment: React.FC<SecurityAssessmentProps> = ({
             </p>
           </div>
           <div className="text-xs text-slate-500">
-            Total Penalty: <span className="font-mono font-bold text-slate-900">-{100 - scorecard.totalScore} pts</span>
+            Known-risk penalties: <span className="font-mono font-bold text-slate-900">-{scorecard.riskPenalty} pts</span>
+            <span className="ml-3">Evidence coverage: <strong className="font-mono text-slate-900">{scorecard.evidenceCoveragePercent}%</strong></span>
           </div>
         </div>
 

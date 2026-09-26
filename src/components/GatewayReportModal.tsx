@@ -5,6 +5,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   Download,
+  FileDown,
   Copy,
   Check,
   RefreshCw,
@@ -14,8 +15,11 @@ import {
   Info,
   Clock,
   Key,
+  Sparkles,
 } from 'lucide-react';
-import { GatewaySecurityReport, fetchGatewayReport } from '../utils/gatewayClient';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { GatewayAiReport, GatewaySecurityReport, fetchGatewayReport, generateGatewayAiReport } from '../utils/gatewayClient';
 
 interface GatewayReportModalProps {
   isOpen: boolean;
@@ -34,6 +38,9 @@ export const GatewayReportModal: React.FC<GatewayReportModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [aiReport, setAiReport] = useState<GatewayAiReport | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen && gatewayId) {
@@ -41,6 +48,8 @@ export const GatewayReportModal: React.FC<GatewayReportModalProps> = ({
     } else {
       setReport(null);
       setError(null);
+      setAiReport(null);
+      setAiError(null);
     }
   }, [isOpen, gatewayId]);
 
@@ -74,6 +83,10 @@ export const GatewayReportModal: React.FC<GatewayReportModalProps> = ({
       .map((l) => `- ${l}`)
       .join('\n');
 
+    const recommendationMd = securityAssessment.configurationRecommendations
+      .map((item) => `| ${item.setting} | ${item.current} | ${item.recommended} | ${item.basis} |`)
+      .join('\n');
+
     const ikeMd =
       telemetry.ikeRecords.length > 0
         ? telemetry.ikeRecords
@@ -95,9 +108,13 @@ export const GatewayReportModal: React.FC<GatewayReportModalProps> = ({
             .map(
               (r, i) =>
                 `### Child SA #${i + 1} (${r.name || 'Unnamed'})\n` +
-                `- **Protocol / Mode:** \`${r.protocol || 'ESP'}\` / \`${r.mode || 'TUNNEL'}\`\n` +
+                `- **Protocol / Mode:** \`${r.protocol || 'ESP'}\` / \`${r.mode || 'Not determinable'}\`\n` +
                 `- **Inbound SPI:** \`${r.inbound_spi || r.spi || 'N/A'}\` | **Outbound SPI:** \`${r.outbound_spi || 'N/A'}\`\n` +
                 `- **Cipher / Integrity:** \`${r.encr || 'N/A'}\` / \`${r.integ || 'N/A'}\`\n` +
+                `- **Traffic selectors:** \`${r.local_ts || 'Not determinable'}\` -> \`${r.remote_ts || 'Not determinable'}\`\n` +
+                `- **Gateway-reported rekey in / expires in (seconds):** \`${r.rekey_time ?? 'Not determinable'}\` / \`${r.life_time ?? 'Not determinable'}\`\n` +
+                `- **Inbound / outbound replay window:** \`${r.replay_window_in ?? 'Not determinable'}\` / \`${r.replay_window_out ?? 'Not determinable'}\` packets\n` +
+                `- **Inbound / outbound ESN:** \`${r.esn_in ?? r.esn ?? 'Not determinable'}\` / \`${r.esn_out ?? r.esn ?? 'Not determinable'}\`\n` +
                 `- **Traffic:** In: ${r.packets_in ?? 0} pkts (${r.bytes_in ?? 0} B) | Out: ${r.packets_out ?? 0} pkts (${r.bytes_out ?? 0} B)`
             )
             .join('\n\n')
@@ -123,21 +140,32 @@ export const GatewayReportModal: React.FC<GatewayReportModalProps> = ({
 ---
 
 ## 2. Security Assessment Findings
+**Verified Score:** ${securityAssessment.score.value}/100 (${securityAssessment.score.rating})
+**Evidence Coverage:** ${securityAssessment.score.evidenceCoveragePercent}% (${securityAssessment.score.status})
+**Scoring Method:** ${securityAssessment.score.method}
+
 ${findingsMd || '_No cryptographic findings evaluated._'}
 
 ---
 
-## 3. Active IKE Security Associations
+## 3. Configuration Hardening Recommendations
+| Setting | Current | Recommended | Basis |
+| --- | --- | --- | --- |
+${recommendationMd}
+
+---
+
+## 4. Active IKE Security Associations
 ${ikeMd}
 
 ---
 
-## 4. Active Child Security Associations (ESP)
+## 5. Active Child Security Associations (ESP)
 ${childMd}
 
 ---
 
-## 5. Scope & Limitations
+## 6. Scope & Limitations
 ${limitationsMd}
 
 ---
@@ -172,6 +200,163 @@ ${limitationsMd}
     a.download = `gateway_security_report_${gatewayId || 'gw'}.json`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleGenerateAiReport = async () => {
+    if (!gatewayId) return;
+    setAiLoading(true);
+    setAiError(null);
+    try {
+      setAiReport(await generateGatewayAiReport(gatewayId));
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : 'AI narrative generation failed.');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleDownloadPdf = () => {
+    if (!report) return;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 14;
+    let y = 16;
+    const printable = (value: unknown) => String(value ?? 'Not determinable');
+
+    const ensureSpace = (height: number) => {
+      if (y + height > pageHeight - margin) {
+        doc.addPage();
+        y = margin;
+      }
+    };
+    const section = (title: string) => {
+      ensureSpace(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.setTextColor(25, 50, 72);
+      doc.text(title, margin, y);
+      y += 7;
+    };
+    const paragraph = (text: string, size = 9) => {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(size);
+      doc.setTextColor(45, 55, 65);
+      const lines = doc.splitTextToSize(text, pageWidth - margin * 2);
+      ensureSpace(lines.length * 4.5 + 3);
+      doc.text(lines, margin, y);
+      y += lines.length * 4.5 + 4;
+    };
+    const table = (head: string[], rows: string[][]) => {
+      ensureSpace(18);
+      autoTable(doc, {
+        startY: y,
+        head: [head],
+        body: rows.length ? rows : [['No data', ...head.slice(1).map(() => '')]],
+        margin: { left: margin, right: margin },
+        styles: { font: 'helvetica', fontSize: 7.5, cellPadding: 2, overflow: 'linebreak' },
+        headStyles: { fillColor: [28, 66, 83], textColor: 255 },
+        alternateRowStyles: { fillColor: [245, 248, 249] },
+      });
+      y = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? y + 12;
+      y += 7;
+    };
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(17);
+    doc.setTextColor(24, 54, 70);
+    doc.text('Gateway Security Assessment', margin, y);
+    y += 8;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(75, 85, 95);
+    doc.text(`${report.gateway.display_name} | ${report.gateway.gateway_type} | ${report.reportGeneratedAt} UTC`, margin, y);
+    y += 9;
+
+    section('Security Score and Evidence Coverage');
+    const score = report.securityAssessment.score;
+    paragraph(`${score.value}/100 verified points | ${score.rating} | ${score.status} | ${score.evidenceCoveragePercent}% evidence coverage`);
+    const barWidth = pageWidth - margin * 2;
+    const drawBar = (label: string, value: number, color: [number, number, number]) => {
+      ensureSpace(10);
+      doc.setFontSize(8);
+      doc.setTextColor(50, 60, 70);
+      doc.text(`${label}: ${value}%`, margin, y);
+      y += 2;
+      doc.setFillColor(230, 235, 238);
+      doc.rect(margin, y, barWidth, 4, 'F');
+      doc.setFillColor(...color);
+      doc.rect(margin, y, barWidth * Math.max(0, Math.min(100, value)) / 100, 4, 'F');
+      y += 8;
+    };
+    drawBar('Verified score', score.value, [25, 132, 105]);
+    drawBar('Evidence coverage', score.evidenceCoveragePercent, [42, 115, 165]);
+
+    const severityEntries = Object.entries(report.securityAssessment.charts.findingSeverityCounts)
+      .filter(([severity]) => severity !== 'Pass');
+    if (severityEntries.some(([, count]) => count > 0)) {
+      section('Finding Severity Distribution');
+      const maxCount = Math.max(1, ...severityEntries.map(([, count]) => count));
+      severityEntries.forEach(([severity, count]) => {
+        ensureSpace(8);
+        doc.setFontSize(8);
+        doc.setTextColor(50, 60, 70);
+        doc.text(`${severity}: ${count}`, margin, y + 3);
+        const width = Math.max(1, (barWidth - 35) * count / maxCount);
+        doc.setFillColor(severity === 'Critical' ? 190 : severity === 'High' ? 220 : 210, severity === 'Critical' ? 55 : 145, 75);
+        doc.rect(margin + 35, y, width, 4, 'F');
+        y += 7;
+      });
+      y += 3;
+    }
+
+    section('Executive Summary');
+    paragraph(aiReport?.narrative.executive_summary ?? 'AI narrative not generated. Findings, scores, and recommendations below are deterministic.');
+    if (aiReport?.narrative.technical_interpretation) {
+      section('Technical Interpretation (AI-assisted)');
+      paragraph(aiReport.narrative.technical_interpretation);
+    }
+
+    section('Security Findings');
+    table(['Severity', 'Finding', 'Observed', 'Assessment'], report.securityAssessment.findings.map((finding) => [
+      finding.severity, finding.category, finding.value, finding.detail,
+    ]));
+
+    section('Configuration Hardening Recommendations');
+    const aiNotes = new Map((aiReport?.narrative.recommendation_notes ?? []).map((note) => [note.id, note.note]));
+    table(['Setting', 'Current', 'Recommended', 'Basis / AI note'], report.securityAssessment.configurationRecommendations.map((item) => [
+      item.setting,
+      item.current,
+      item.recommended,
+      [item.basis, aiNotes.get(item.id)].filter(Boolean).join(' '),
+    ]));
+
+    section('Active IKE Security Associations');
+    table(['Version', 'Encryption', 'Integrity', 'PRF', 'DH Group'], report.telemetry.ikeRecords.map((ike) => [
+      printable(ike.version), printable(ike.encr), printable(ike.integ), printable(ike.prf), printable(ike.dh),
+    ]));
+
+    section('Active Child Security Associations');
+    table(['Mode', 'Cipher / Integrity', 'DH / PFS', 'Replay In / Out', 'ESN In / Out'], report.telemetry.childRecords.map((child) => [
+      `${printable(child.protocol)} / ${printable(child.mode)}`,
+      `${printable(child.encr)} / ${printable(child.integ)}`,
+      `${printable(child.dh)} / ${child.dh ? 'Enabled' : 'Not determinable'}`,
+      `${printable(child.replay_window_in)} / ${printable(child.replay_window_out)}`,
+      `${printable(child.esn_in)} / ${printable(child.esn_out)}`,
+    ]));
+
+    section('Evidence Limitations');
+    report.securityAssessment.limitations.forEach((limitation) => paragraph(`• ${limitation}`));
+
+    const pageCount = doc.getNumberOfPages();
+    for (let page = 1; page <= pageCount; page += 1) {
+      doc.setPage(page);
+      doc.setFontSize(7);
+      doc.setTextColor(120, 130, 138);
+      doc.text('Deterministic findings are authoritative; AI text is explanatory and does not alter findings or scores.', margin, pageHeight - 7);
+      doc.text(`${page}/${pageCount}`, pageWidth - margin, pageHeight - 7, { align: 'right' });
+    }
+    doc.save(`gateway_security_report_${gatewayId || 'gateway'}.pdf`);
   };
 
   return (
@@ -270,6 +455,32 @@ ${limitationsMd}
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] gap-4 p-4 rounded-lg bg-white border border-slate-200">
+                <div>
+                  <span className="text-[11px] font-semibold uppercase text-slate-500">Verified Score</span>
+                  <div className="flex items-baseline gap-1 mt-1">
+                    <strong className="text-3xl text-slate-900">{report.securityAssessment.score.value}</strong>
+                    <span className="text-sm text-slate-500">/ 100</span>
+                  </div>
+                  <div className="text-xs font-medium text-slate-600">{report.securityAssessment.score.rating} · {report.securityAssessment.score.status}</div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs text-slate-600"><span>Evidence coverage</span><strong>{report.securityAssessment.score.evidenceCoveragePercent}%</strong></div>
+                  <div className="h-2 bg-slate-100 rounded overflow-hidden"><div className="h-full bg-cyan-700" style={{ width: `${report.securityAssessment.score.evidenceCoveragePercent}%` }} /></div>
+                  <p className="text-[11px] text-slate-500">Unknown controls earn no points; they are not treated as confirmed vulnerabilities.</p>
+                </div>
+              </div>
+
+              {aiError && <div className="p-3 rounded bg-amber-50 border border-amber-200 text-xs text-amber-800">{aiError}</div>}
+              {aiReport && (
+                <div className="p-4 rounded-lg bg-cyan-50 border border-cyan-200 space-y-2">
+                  <div className="text-xs font-semibold uppercase text-cyan-900">AI-assisted narrative · {aiReport.model}</div>
+                  <p className="text-sm text-slate-800">{aiReport.narrative.executive_summary}</p>
+                  <p className="text-xs text-slate-600">{aiReport.narrative.technical_interpretation}</p>
+                  <p className="text-[11px] text-cyan-900">AI prose does not change deterministic findings, scores, or recommendations.</p>
+                </div>
+              )}
+
               {/* Security Findings Section */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -296,7 +507,7 @@ ${limitationsMd}
 
                 {report.securityAssessment.findings.length === 0 ? (
                   <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 text-center text-slate-500 text-xs">
-                    No active SAs were present to perform algorithmic evaluation.
+                    No conclusive security findings are available. Review the evidence and limitations below.
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -344,6 +555,29 @@ ${limitationsMd}
                     })}
                   </div>
                 )}
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-700">Configuration Hardening Matrix</h3>
+                <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 text-slate-600">
+                      <tr><th className="p-2">Setting</th><th className="p-2">Observed</th><th className="p-2">Recommended</th><th className="p-2">Basis</th></tr>
+                    </thead>
+                    <tbody>
+                      {report.securityAssessment.configurationRecommendations.map((item) => {
+                        const note = aiReport?.narrative.recommendation_notes.find((entry) => entry.id === item.id)?.note;
+                        return <tr key={item.id} className="border-t border-slate-100 align-top">
+                          <td className="p-2 font-medium text-slate-800">{item.setting}</td>
+                          <td className="p-2 font-mono text-slate-700">{item.current}</td>
+                          <td className="p-2 text-slate-800">{item.recommended}</td>
+                          <td className="p-2 text-slate-600">{item.basis}{note ? ` ${note}` : ''}</td>
+                        </tr>;
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-[11px] text-slate-500">Recommendations are deterministic; AI only adds explanations tied to these rows.</p>
               </div>
 
               {/* Active IKE SAs */}
@@ -407,15 +641,23 @@ ${limitationsMd}
                   </p>
                 ) : (
                   <div className="space-y-2">
-                    {report.telemetry.childRecords.map((child, idx) => (
-                      <div
+                    {report.telemetry.childRecords.map((child, idx) => {
+                      const evidence = report.securityAssessment.childSaEvidence?.[idx];
+                      const evidenceValue = (field: string) => {
+                        const item = evidence?.fields[field];
+                        return item?.status === 'CONFIRMED' && item.value !== null
+                          ? String(item.value)
+                          : 'Not determinable';
+                      };
+
+                      return (<div
                         key={idx}
                         className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 space-y-2 text-xs"
                       >
                         <div className="flex items-center justify-between font-mono">
                           <span className="font-semibold text-blue-700">{String(child.name || `Child SA #${idx + 1}`)}</span>
                           <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 text-xs">
-                            {String(child.protocol || 'ESP')} &bull; {String(child.mode || 'TUNNEL')}
+                            {String(child.protocol || 'ESP')} &bull; {evidenceValue('mode')}
                           </span>
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-slate-700 font-mono text-xs">
@@ -436,14 +678,26 @@ ${limitationsMd}
                             <span className="text-slate-900 font-medium">{String(child.integ || 'N/A')}</span>
                           </div>
                         </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-slate-700 font-mono text-xs border-t border-slate-200 pt-2">
+                          <div><span className="text-slate-500 block text-[10px] uppercase font-sans">LOCAL SELECTORS:</span>{evidenceValue('local_ts')}</div>
+                          <div><span className="text-slate-500 block text-[10px] uppercase font-sans">REMOTE SELECTORS:</span>{evidenceValue('remote_ts')}</div>
+                          <div><span className="text-slate-500 block text-[10px] uppercase font-sans">STATE:</span>{evidenceValue('state')}</div>
+                          <div><span className="text-slate-500 block text-[10px] uppercase font-sans">CHILD-SA DH GROUP:</span>{evidenceValue('dh_group')}</div>
+                          <div><span className="text-slate-500 block text-[10px] uppercase font-sans">REKEY IN (S):</span>{evidenceValue('rekey_time')}</div>
+                          <div><span className="text-slate-500 block text-[10px] uppercase font-sans">EXPIRES IN (S):</span>{evidenceValue('life_time')}</div>
+                          <div><span className="text-slate-500 block text-[10px] uppercase font-sans">PFS:</span>{evidenceValue('pfs')}</div>
+                          <div><span className="text-slate-500 block text-[10px] uppercase font-sans">ESN IN / OUT:</span>{evidenceValue('esn_in')} / {evidenceValue('esn_out')}</div>
+                          <div><span className="text-slate-500 block text-[10px] uppercase font-sans">REPLAY WINDOW IN / OUT:</span>{evidenceValue('replay_window_in')} / {evidenceValue('replay_window_out')} packets</div>
+                          <div><span className="text-slate-500 block text-[10px] uppercase font-sans">INBOUND ANTI-REPLAY:</span>{evidenceValue('replay_protection')}</div>
+                        </div>
                         {(child.packets_in !== undefined || child.bytes_in !== undefined) && (
                           <div className="flex items-center justify-between text-xs text-slate-500 font-mono border-t border-slate-200 pt-1.5">
                             <span>In: {Number(child.packets_in || 0).toLocaleString()} pkts ({Number(child.bytes_in || 0).toLocaleString()} B)</span>
                             <span>Out: {Number(child.packets_out || 0).toLocaleString()} pkts ({Number(child.bytes_out || 0).toLocaleString()} B)</span>
                           </div>
                         )}
-                      </div>
-                    ))}
+                      </div>);
+                    })}
                   </div>
                 )}
               </div>
@@ -468,11 +722,27 @@ ${limitationsMd}
         </div>
 
         {/* Footer Actions */}
-        <div className="flex items-center justify-between px-6 py-3.5 border-t border-slate-200 bg-slate-50">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-6 py-3.5 border-t border-slate-200 bg-slate-50">
           <div className="text-xs text-slate-500 font-mono">
             {report?.reportGeneratedAt ? `Snapshot: ${report.reportGeneratedAt}` : ''}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={handleGenerateAiReport}
+              disabled={!report || loading || aiLoading}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-cyan-900 bg-cyan-50 hover:bg-cyan-100 border border-cyan-300 transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              <Sparkles className="w-4 h-4" />
+              {aiLoading ? 'Generating...' : aiReport ? 'Refresh AI Narrative' : 'Generate AI Narrative'}
+            </button>
+            <button
+              onClick={handleDownloadPdf}
+              disabled={!report || loading}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              <FileDown className="w-4 h-4" />
+              Download PDF
+            </button>
             <button
               onClick={handleCopy}
               disabled={!report || loading}

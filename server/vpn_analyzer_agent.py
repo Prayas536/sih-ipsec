@@ -9,8 +9,11 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import ssl
+import subprocess
 import sys
+import tempfile
 import time
 import urllib.error
 import urllib.parse
@@ -22,8 +25,9 @@ from typing import Any
 from correlation import correlate_spi
 from sanitizer import sanitize_analysis_payload
 from telemetry import GatewayAdapter, StrongSwanAdapter, ViciAdapter
+from testbed_control import render_swanctl_config, validate_testbed_settings
 
-AGENT_VERSION = "1.2.0"
+AGENT_VERSION = "1.3.0"
 DEFAULT_CONFIG_PATH = os.environ.get("VPN_AGENT_CONFIG", "agent_config.json")
 
 
@@ -174,6 +178,100 @@ def send_gateway_heartbeat(
         return json.loads(resp.read().decode("utf-8"))
 
 
+def poll_testbed_job(server: str, gateway_id: str, token: str, timeout: int = 5) -> dict[str, Any] | None:
+    url = f"{server.rstrip('/')}/api/gateways/{urllib.parse.quote(gateway_id)}/testbed/next"
+    request = urllib.request.Request(
+        url,
+        data=b"{}",
+        method="POST",
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {token}"},
+    )
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        payload = json.loads(response.read().decode("utf-8"))
+    job = payload.get("job")
+    return job if isinstance(job, dict) else None
+
+
+def apply_testbed_job(job: dict[str, Any], command_timeout: int = 35) -> dict[str, str]:
+    """Apply one validated temporary StrongSwan connection; never handles secrets."""
+    connection_name = job.get("connectionName")
+    child_name = job.get("childName")
+    try:
+        config = render_swanctl_config(job.get("settings"), connection_name, child_name)
+    except (TypeError, ValueError) as exc:
+        return {"status": "FAILED", "message": str(exc)}
+
+    executable = shutil.which("swanctl")
+    if executable is None:
+        return {"status": "FAILED", "message": "STRONGSWAN_CONTROL_TOOL_UNAVAILABLE"}
+
+    config_path = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", suffix=".conf", delete=False) as config_file:
+            config_file.write(config)
+            config_path = config_file.name
+        try:
+            os.chmod(config_path, 0o600)
+        except OSError:
+            pass
+
+        loaded = subprocess.run(
+            (executable, "--load-conns", "--file", config_path),
+            capture_output=True,
+            text=True,
+            timeout=15,
+            check=False,
+        )
+        if loaded.returncode != 0:
+            return {"status": "FAILED", "message": "STRONGSWAN_REJECTED_TESTBED_CONFIGURATION"}
+
+        initiated = subprocess.run(
+            (executable, "--initiate", "--child", child_name, "--ike", connection_name, "--timeout", str(command_timeout)),
+            capture_output=True,
+            text=True,
+            timeout=command_timeout + 5,
+            check=False,
+        )
+        if initiated.returncode != 0:
+            return {
+                "status": "FAILED",
+                "message": "CONFIGURATION_LOADED_BUT_TUNNEL_NOT_ESTABLISHED_CHECK_PEER_ROUTE_AND_PREPROVISIONED_CREDENTIALS",
+            }
+        return {"status": "SUCCEEDED", "message": "CONFIGURATION_LOADED_AND_TUNNEL_INITIATION_ACCEPTED"}
+    except subprocess.TimeoutExpired:
+        return {"status": "FAILED", "message": "STRONGSWAN_COMMAND_TIMEOUT"}
+    except OSError as exc:
+        return {"status": "FAILED", "message": f"STRONGSWAN_COMMAND_FAILED_{type(exc).__name__}"}
+    finally:
+        if config_path:
+            try:
+                os.unlink(config_path)
+            except OSError:
+                pass
+
+
+def submit_testbed_job_result(
+    server: str,
+    gateway_id: str,
+    token: str,
+    job_id: str,
+    result: dict[str, str],
+    timeout: int = 5,
+) -> None:
+    url = (
+        f"{server.rstrip('/')}/api/gateways/{urllib.parse.quote(gateway_id)}"
+        f"/testbed/{urllib.parse.quote(job_id)}/result"
+    )
+    request = urllib.request.Request(
+        url,
+        data=json.dumps(result).encode("utf-8"),
+        method="POST",
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {token}"},
+    )
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        response.read()
+
+
 def enroll_agent(
     server: str,
     token: str,
@@ -251,6 +349,7 @@ def run_agent(
     config_path: str | Path | None = None,
     once: bool = False,
     interval: int | None = None,
+    allow_testbed_apply: bool = False,
 ) -> int:
     config = load_config(config_path)
     srv = server or config.get("central_api_url") or os.environ.get("VPN_ANALYZER_SERVER")
@@ -271,6 +370,8 @@ def run_agent(
         return 1
 
     print(f"[agent] Starting Gateway Agent for {gid} -> {srv} (adapter: {adapter}, interval: {intv}s)")
+    if allow_testbed_apply:
+        print("[agent] Testbed apply enabled: only validated settings and fixed swanctl commands are accepted.")
 
     while True:
         try:
@@ -286,6 +387,16 @@ def run_agent(
             print(f"[agent] [WARN] Server returned HTTP {exc.code}: {exc.reason}", file=sys.stderr)
         except Exception as exc:
             print(f"[agent] [WARN] Telemetry submission failed: {exc}", file=sys.stderr)
+
+        if allow_testbed_apply:
+            try:
+                job = poll_testbed_job(srv, gid, tok)
+                if job:
+                    result = apply_testbed_job(job)
+                    submit_testbed_job_result(srv, gid, tok, str(job.get("jobId", "")), result)
+                    print(f"[agent] Testbed job {result['status'].lower()}: {result['message']}")
+            except Exception as exc:
+                print(f"[agent] [WARN] Testbed job poll/apply failed: {type(exc).__name__}", file=sys.stderr)
 
         if once:
             break
@@ -315,6 +426,7 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--config", help="Path to configuration file")
     run_parser.add_argument("--once", action="store_true", help="Send telemetry once and exit")
     run_parser.add_argument("--interval", type=int, help="Telemetry submission interval in seconds")
+    run_parser.add_argument("--allow-testbed-apply", action="store_true", help="Allow explicitly confirmed validated testbed jobs")
 
     # heartbeat
     hb_parser = subparsers.add_parser("heartbeat", help="Send a heartbeat ping")
@@ -362,6 +474,7 @@ def main() -> int:
             config_path=args.config,
             once=args.once,
             interval=args.interval,
+            allow_testbed_apply=args.allow_testbed_apply,
         )
 
     if args.command == "heartbeat":

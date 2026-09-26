@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   X,
   Download,
+  FileDown,
   Copy,
   Check,
   ShieldCheck,
@@ -12,6 +13,8 @@ import {
 } from 'lucide-react';
 import { AiPrediction, IkeSecurityAssociation, SecurityScorecard, VpnCaptureScenario } from '../types';
 import { CombinedAnalysisPanel } from './CombinedAnalysisPanel';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface ReportModalProps {
   isOpen: boolean;
@@ -78,6 +81,129 @@ export const ReportModal: React.FC<ReportModalProps> = ({
     URL.revokeObjectURL(url);
   };
 
+  const handleDownloadPdf = () => {
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 14;
+    let y = 16;
+
+    const section = (title: string) => {
+      if (y > pageHeight - 22) {
+        doc.addPage();
+        y = margin;
+      }
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.setTextColor(25, 50, 72);
+      doc.text(title, margin, y);
+      y += 7;
+    };
+    const paragraph = (text: string) => {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(45, 55, 65);
+      const lines = doc.splitTextToSize(text, pageWidth - margin * 2);
+      if (y + lines.length * 4.5 > pageHeight - margin) {
+        doc.addPage();
+        y = margin;
+      }
+      doc.text(lines, margin, y);
+      y += lines.length * 4.5 + 4;
+    };
+    const table = (head: string[], body: string[][]) => {
+      if (y > pageHeight - 25) {
+        doc.addPage();
+        y = margin;
+      }
+      autoTable(doc, {
+        startY: y,
+        head: [head],
+        body: body.length ? body : [["No data", ...head.slice(1).map(() => "")]],
+        margin: { left: margin, right: margin },
+        styles: { font: 'helvetica', fontSize: 7.5, cellPadding: 2, overflow: 'linebreak' },
+        headStyles: { fillColor: [28, 66, 83], textColor: 255 },
+        alternateRowStyles: { fillColor: [245, 248, 249] },
+      });
+      y = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? y + 12;
+      y += 7;
+    };
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(17);
+    doc.setTextColor(24, 54, 70);
+    doc.text('IPsec Security Assessment Report', margin, y);
+    y += 8;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(75, 85, 95);
+    doc.text(`${scenario.name} | ${reportType} | ${new Date().toISOString()}`, margin, y);
+    y += 9;
+
+    section('Score and Evidence Coverage');
+    paragraph(`${scorecard.totalScore}/100 | ${scorecard.rating} | ${scorecard.assessmentStatus} | ${scorecard.evidenceCoveragePercent}% evidence coverage | ${scorecard.riskPenalty} known-risk penalty points`);
+    const barWidth = pageWidth - margin * 2;
+    const scoreBar = (label: string, value: number, color: [number, number, number]) => {
+      doc.setFontSize(8);
+      doc.text(`${label}: ${value}%`, margin, y);
+      y += 2;
+      doc.setFillColor(230, 235, 238);
+      doc.rect(margin, y, barWidth, 4, 'F');
+      doc.setFillColor(...color);
+      doc.rect(margin, y, barWidth * Math.max(0, Math.min(100, value)) / 100, 4, 'F');
+      y += 8;
+    };
+    scoreBar('Evidence-adjusted score', scorecard.totalScore, [25, 132, 105]);
+    scoreBar('Evidence coverage', scorecard.evidenceCoveragePercent, [42, 115, 165]);
+
+    section('Observed Security Findings');
+    table(['Severity', 'Parameter', 'Detected', 'Recommendation'], scorecard.findings.map((finding) => [
+      finding.severity,
+      finding.parameter,
+      finding.detectedValue,
+      finding.remediation,
+    ]));
+
+    section('Cryptographic Parameters');
+    table(['Parameter', 'Value'], [
+      ['IKE version', scenario.sa.ikeVersion],
+      ['Operating mode', scenario.sa.operationalMode],
+      ['Encryption', `${scenario.sa.encryptionAlgorithm} (${scenario.sa.encryptionKeyBits}-bit)`],
+      ['Integrity', scenario.sa.authIntegrityAlgorithm],
+      ['DH group', scenario.sa.dhGroup],
+      ['PFS', scenario.sa.pfsEnabled === null ? 'Not determined' : scenario.sa.pfsEnabled ? 'Enabled' : 'Disabled'],
+      ['Key lifetime', scenario.sa.keyLifetimeSeconds === null ? 'Not determined' : `${scenario.sa.keyLifetimeSeconds} seconds`],
+      ['Replay protection', scenario.sa.replayProtection === null ? 'Not determined' : scenario.sa.replayProtection ? 'Enabled' : 'Disabled'],
+    ]);
+
+    section('Encrypted Traffic Classification');
+    table(['Result', 'Confidence', 'Packet count', 'Entropy'], [[
+      prediction.predictedClass,
+      `${prediction.confidenceScore}%`,
+      String(scenario.features.packetCount),
+      `${scenario.features.calculatedEntropy} bits/byte`,
+    ]]);
+
+    if (scenario.gatewayTelemetry) {
+      section('Gateway Correlation');
+      table(['Gateway status', 'Correlation', 'Matched SPIs'], [[
+        scenario.gatewayTelemetry.gatewayStatus,
+        scenario.gatewayTelemetry.correlationStatus,
+        scenario.gatewayTelemetry.matchedSpis.join(', ') || 'No exact match',
+      ]]);
+    }
+
+    const totalPages = doc.getNumberOfPages();
+    for (let page = 1; page <= totalPages; page += 1) {
+      doc.setPage(page);
+      doc.setFontSize(7);
+      doc.setTextColor(120, 130, 138);
+      doc.text('Unknown controls are not treated as secure; findings are based on the displayed evidence.', margin, pageHeight - 7);
+      doc.text(`${page}/${totalPages}`, pageWidth - margin, pageHeight - 7, { align: 'right' });
+    }
+    doc.save(`IPsec_Security_Report_${scenario.id}_${reportType.toLowerCase()}.pdf`);
+  };
+
   const generateMarkdownReport = () => {
     const gt = scenario.gatewayTelemetry;
     const hasTelemetry = !!gt;
@@ -114,9 +240,11 @@ export const ReportModal: React.FC<ReportModalProps> = ({
 
 ## 1. Overall Security Scorecard
 - **Security Score:** ${scorecard.totalScore} / 100 (${scorecard.rating.toUpperCase()})
-- **NIST SP 800-77 Rev. 1 Status:** ${scorecard.complianceNist ? 'COMPLIANT' : 'NON-COMPLIANT'}
-- **RFC 8221 Cryptographic Status:** ${scorecard.complianceRfc8221 ? 'COMPLIANT' : 'NON-COMPLIANT'}
-- **NSA CNSA Suite Status:** ${scorecard.complianceNsaCnsa ? 'COMPLIANT' : 'NON-COMPLIANT'}
+- **Evidence Coverage:** ${scorecard.evidenceCoveragePercent}% (${scorecard.assessmentStatus})
+- **Known-Risk Penalties:** ${scorecard.riskPenalty} points; unknown controls receive no score credit.
+- **NIST SP 800-77 Rev. 1 Status:** ${scorecard.complianceNist === null ? 'NOT VERIFIED' : scorecard.complianceNist ? 'COMPLIANT' : 'NON-COMPLIANT'}
+- **RFC 8221 Cryptographic Status:** ${scorecard.complianceRfc8221 === null ? 'NOT VERIFIED' : scorecard.complianceRfc8221 ? 'COMPLIANT' : 'NON-COMPLIANT'}
+- **NSA CNSA Suite Status:** ${scorecard.complianceNsaCnsa === null ? 'NOT VERIFIED' : scorecard.complianceNsaCnsa ? 'COMPLIANT' : 'NON-COMPLIANT'}
 
 ---
 
@@ -259,10 +387,13 @@ ${scorecard.findings
                     {scorecard.totalScore} <span className="text-sm font-normal text-slate-400">/ 100</span>
                   </div>
                   <span className={`inline-block px-2.5 py-0.5 rounded text-xs font-bold uppercase mt-1 ${
-                    scorecard.totalScore >= 70 ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-rose-950 text-rose-300 border border-rose-800'
+                    scorecard.rating === 'Not Rated'
+                      ? 'bg-slate-800 text-slate-300 border border-slate-700'
+                      : scorecard.totalScore >= 70 ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-rose-950 text-rose-300 border border-rose-800'
                   }`}>
                     {scorecard.rating} Posture
                   </span>
+                  <div className="text-[11px] text-slate-400 mt-1">{scorecard.evidenceCoveragePercent}% evidence coverage · {scorecard.assessmentStatus}</div>
                 </div>
               </div>
 
@@ -275,11 +406,14 @@ ${scorecard.findings
                 <div className="text-slate-300 leading-relaxed space-y-2">
                   <p>
                     This IPsec network capture represents encrypted communications under the jurisdiction of{' '}
-                    <strong>{scenario.organization}</strong>. The cryptanalytic posture is evaluated at{' '}
-                    <strong className="text-white">{scorecard.totalScore}/100</strong>, indicating that{' '}
-                    {scorecard.totalScore < 60
-                      ? 'critical legacy choices leave this tunnel severely compromised.'
-                      : 'the cryptographic suite follows modern standards with robust defense.'}
+                    <strong>{scenario.organization}</strong>. Its evidence-adjusted score is{' '}
+                    <strong className="text-white">{scorecard.totalScore}/100</strong> with{' '}
+                    <strong className="text-white">{scorecard.evidenceCoveragePercent}% evidence coverage</strong>.{' '}
+                    {scorecard.assessmentStatus !== 'COMPLETE'
+                      ? 'This is a partial assessment; unobserved controls are not treated as secure or as confirmed vulnerabilities.'
+                      : scorecard.findings.some((finding) => finding.severity === 'Critical' || finding.severity === 'High')
+                      ? 'The observed configuration includes high-risk findings that require review.'
+                      : 'No high-risk finding was identified in the assessed fields.'}
                   </p>
                   <p>
                     <strong>AI Inferred Workload:</strong> Even though raw payloads are unreadable due to ESP encapsulation, machine learning models determined with <strong>{prediction.confidenceScore}% confidence</strong> that this tunnel is transmitting <strong>{prediction.predictedClass}</strong> based on statistical framing characteristics.
@@ -407,6 +541,15 @@ ${scorecard.findings
             >
               <FileJson className="w-3.5 h-3.5 text-amber-400" />
               <span>Export JSON</span>
+            </button>
+
+            <button
+              id="btn-download-pdf"
+              onClick={handleDownloadPdf}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors cursor-pointer"
+            >
+              <FileDown className="w-3.5 h-3.5 text-cyan-300" />
+              <span>Download PDF</span>
             </button>
 
             <button

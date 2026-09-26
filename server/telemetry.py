@@ -7,6 +7,7 @@ are never requested or parsed.
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 import importlib
@@ -90,11 +91,19 @@ class StrongSwanAdapter(GatewayAdapter):
                 error="STRONGSWAN_NO_PARSEABLE_SA",
             )
 
+        xfrm_states, xfrm_error = collect_xfrm_state_metadata()
+        merge_xfrm_state_metadata(records, xfrm_states)
+        evidence = ["Read-only swanctl SA telemetry was parsed from the gateway."]
+        if xfrm_states:
+            evidence.append("Read-only Linux XFRM replay and ESN metadata was SPI-correlated; raw state output was discarded.")
+        elif xfrm_error:
+            evidence.append(f"Linux XFRM metadata unavailable: {xfrm_error}.")
+
         return TelemetryResult(
             source="GATEWAY_TELEMETRY",
             status="CONFIRMED",
             records=records,
-            evidence=["Read-only swanctl SA telemetry was parsed from the gateway."],
+            evidence=evidence,
         )
 
 
@@ -136,11 +145,18 @@ class ViciAdapter(GatewayAdapter):
                 evidence=["VICI returned no parseable SA metadata."],
                 error="STRONGSWAN_VICI_NO_PARSEABLE_SA",
             )
+        xfrm_states, xfrm_error = collect_xfrm_state_metadata()
+        merge_xfrm_state_metadata(records, xfrm_states)
+        evidence = ["Read-only StrongSwan VICI SA telemetry was parsed."]
+        if xfrm_states:
+            evidence.append("Read-only Linux XFRM replay and ESN metadata was SPI-correlated; raw state output was discarded.")
+        elif xfrm_error:
+            evidence.append(f"Linux XFRM metadata unavailable: {xfrm_error}.")
         return TelemetryResult(
             source="GATEWAY_TELEMETRY",
             status="CONFIRMED",
             records=records,
-            evidence=["Read-only StrongSwan VICI SA telemetry was parsed."],
+            evidence=evidence,
         )
 
 
@@ -178,6 +194,132 @@ def _to_int_or_str(val: Any) -> Any:
         return int(val)
     except (ValueError, TypeError):
         return str(val)
+
+
+def _to_esn_bool(value: Any) -> bool | None:
+    if isinstance(value, bool):
+        return value
+    if value in (1, "1", "yes", "true", "YES", "TRUE"):
+        return True
+    if value in (0, "0", "no", "false", "NO", "FALSE"):
+        return False
+    return None
+
+
+def _normalize_spi(value: Any) -> str | None:
+    if not isinstance(value, (str, int)) or isinstance(value, bool):
+        return None
+    text = str(value).strip().lower()
+    raw = text[2:] if text.startswith("0x") else text
+    try:
+        spi = int(raw, 16)
+    except ValueError:
+        return None
+    if spi <= 0 or spi > 0xFFFFFFFF:
+        return None
+    return f"0x{spi:x}"
+
+
+def parse_xfrm_state_records(output: str) -> list[dict[str, Any]]:
+    """Extract only safe replay metadata; never return raw XFRM state text."""
+    records: list[dict[str, Any]] = []
+    current: dict[str, Any] | None = None
+
+    def finish_record() -> None:
+        if current and current.get("spi") and current.get("protocol") == "esp":
+            records.append(current.copy())
+
+    for line in output.splitlines():
+        stripped = line.strip()
+        state_match = re.match(
+            r"^proto\s+(\S+)\s+spi\s+(0x[0-9a-fA-F]+)(?:\([^)]*\))?.*?\bmode\s+(\S+)",
+            stripped,
+            re.IGNORECASE,
+        )
+        if state_match:
+            finish_record()
+            current = {
+                "protocol": state_match.group(1).lower(),
+                "spi": _normalize_spi(state_match.group(2)),
+                "mode": state_match.group(3).lower(),
+            }
+            continue
+
+        if current is None:
+            continue
+
+        window_match = re.search(r"\breplay-window\s+(\d+)\b", stripped, re.IGNORECASE)
+        if window_match and re.search(r"\bseq\s+0x[0-9a-fA-F]+\b", stripped, re.IGNORECASE):
+            current["replay_window"] = int(window_match.group(1))
+
+        flag_match = re.search(r"\bflag\s+(.+?)(?:\s+\(0x[0-9a-fA-F]+\))?$", stripped, re.IGNORECASE)
+        if flag_match:
+            flags = {flag.lower() for flag in re.split(r"[\s,]+", flag_match.group(1).strip()) if flag}
+            current["esn"] = "esn" in flags
+
+    finish_record()
+    return records
+
+
+def collect_xfrm_state_metadata(
+    command: Sequence[str] = ("ip", "-s", "xfrm", "state"),
+    timeout_seconds: float = 5,
+) -> tuple[list[dict[str, Any]], str | None]:
+    """Read Linux XFRM state and discard all non-allowlisted output in memory."""
+    executable = shutil.which(command[0])
+    if executable is None:
+        return [], "IPROUTE2_UNAVAILABLE"
+
+    try:
+        completed = subprocess.run(
+            (executable, *command[1:]),
+            capture_output=True,
+            text=True,
+            timeout=timeout_seconds,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        return [], "XFRM_QUERY_TIMEOUT"
+    except OSError as exc:
+        return [], f"XFRM_QUERY_FAILED_{type(exc).__name__}"
+
+    if completed.returncode != 0:
+        return [], "XFRM_QUERY_REJECTED"
+    return parse_xfrm_state_records(completed.stdout), None
+
+
+def merge_xfrm_state_metadata(
+    telemetry_records: list[dict[str, Any]],
+    xfrm_records: list[dict[str, Any]],
+) -> None:
+    """Attach directional XFRM values only when an SPI has one exact match."""
+    states_by_spi: dict[str, dict[str, Any] | None] = {}
+    for state in xfrm_records:
+        spi = _normalize_spi(state.get("spi"))
+        if spi is None:
+            continue
+        if spi in states_by_spi:
+            states_by_spi[spi] = None
+        else:
+            states_by_spi[spi] = state
+
+    for record in telemetry_records:
+        if str(record.get("protocol", "")).lower() != "esp":
+            continue
+        for direction, spi_field in (("in", "inbound_spi"), ("out", "outbound_spi")):
+            spi = _normalize_spi(record.get(spi_field))
+            state = states_by_spi.get(spi) if spi else None
+            if not isinstance(state, dict):
+                continue
+            record[f"xfrm_spi_{direction}"] = state["spi"]
+            window = state.get("replay_window")
+            if isinstance(window, int) and not isinstance(window, bool) and window >= 0:
+                record[f"replay_window_{direction}"] = window
+                if direction == "in":
+                    record["replay_protection"] = window > 0
+            esn = state.get("esn")
+            if isinstance(esn, bool):
+                record[f"esn_{direction}"] = esn
 
 
 def _parse_swanctl_event_blocks(text: str) -> list[dict[str, Any]]:
@@ -255,6 +397,7 @@ def _parse_swanctl_event_blocks(text: str) -> list[dict[str, Any]]:
             "initiator_spi": _format_spi(ike_info.get("initiator-spi") or ike_info.get("initiator_spi")),
             "responder_spi": _format_spi(ike_info.get("responder-spi") or ike_info.get("responder_spi")),
             "encr": _format_algo(ike_info.get("encr-alg") or ike_info.get("encr"), ike_info.get("encr-keysize")),
+            "integ": _format_algo(ike_info.get("integ-alg") or ike_info.get("integ"), ike_info.get("integ-keysize")),
             "prf": ike_info.get("prf-alg") or ike_info.get("prf"),
             "dh": ike_info.get("dh-group") or ike_info.get("dh"),
             "established": _to_int_or_str(ike_info.get("established")),
@@ -279,6 +422,11 @@ def _parse_swanctl_event_blocks(text: str) -> list[dict[str, Any]]:
                     "spi": spi_in or spi_out,
                     "child_sa_spi": spi_in or spi_out,
                     "encr": _format_algo(child_info.get("encr-alg") or child_info.get("encr"), child_info.get("encr-keysize")),
+                    "integ": _format_algo(child_info.get("integ-alg") or child_info.get("integ"), child_info.get("integ-keysize")),
+                    "dh": child_info.get("dh-group") or child_info.get("dh"),
+                    "esn": _to_esn_bool(child_info.get("esn")),
+                    "rekey_time": _to_int_or_str(child_info.get("rekey-time")),
+                    "life_time": _to_int_or_str(child_info.get("life-time")),
                     "bytes_in": _to_int_or_str(child_info.get("bytes-in")),
                     "bytes_out": _to_int_or_str(child_info.get("bytes-out")),
                     "packets_in": _to_int_or_str(child_info.get("packets-in")),
@@ -319,7 +467,7 @@ def parse_swanctl_records(output: str) -> list[dict[str, Any]]:
         "name", "uniqueid", "state", "version", "local_host", "remote_host",
         "local_ts", "remote_ts", "initiator_spi", "responder_spi", "inbound_spi",
         "outbound_spi", "spi", "child_sa_spi", "protocol", "reqid",
-        "encr", "integ", "prf", "dh", "mode", "rekey_time",
+        "encr", "integ", "prf", "dh", "mode", "rekey_time", "life_time",
         "reauth_time", "bytes_in", "bytes_out", "packets_in", "packets_out",
     }
     for line in text.splitlines():
@@ -343,8 +491,10 @@ def parse_swanctl_records(output: str) -> list[dict[str, Any]]:
 VICI_ALLOWED_FIELDS = {
     "name", "uniqueid", "state", "version", "local_host", "remote_host",
     "local_ts", "remote_ts", "initiator_spi", "responder_spi", "inbound_spi",
-    "outbound_spi", "encr", "integ", "prf", "dh", "mode", "rekey_time",
-    "reauth_time", "bytes_in", "bytes_out", "packets_in", "packets_out",
+    "outbound_spi", "spi_in", "spi_out", "encr", "encr_alg", "encr_keysize",
+    "integ", "integ_alg", "integ_keysize", "prf", "prf_alg", "dh", "dh_group",
+    "protocol", "mode", "rekey_time", "life_time", "reauth_time", "esn", "bytes_in", "bytes_out",
+    "packets_in", "packets_out",
 }
 
 
@@ -362,6 +512,20 @@ def parse_vici_records(value: Any) -> list[dict[str, Any]]:
                 else:
                     visit(item)
             if record:
+                if "spi_in" in record and "inbound_spi" not in record:
+                    record["inbound_spi"] = _format_spi(record.pop("spi_in"))
+                if "spi_out" in record and "outbound_spi" not in record:
+                    record["outbound_spi"] = _format_spi(record.pop("spi_out"))
+                if "encr_alg" in record:
+                    record["encr"] = _format_algo(record.pop("encr_alg"), record.pop("encr_keysize", None))
+                if "integ_alg" in record:
+                    record["integ"] = _format_algo(record.pop("integ_alg"), record.pop("integ_keysize", None))
+                if "prf_alg" in record and "prf" not in record:
+                    record["prf"] = record.pop("prf_alg")
+                if "dh_group" in record and "dh" not in record:
+                    record["dh"] = record.pop("dh_group")
+                if "esn" in record:
+                    record["esn"] = _to_esn_bool(record["esn"])
                 records.append(record)
         elif isinstance(node, (list, tuple)):
             for item in node:

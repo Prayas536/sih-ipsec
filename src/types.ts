@@ -167,11 +167,14 @@ export interface SecurityFinding {
 
 export interface SecurityScorecard {
   totalScore: number; // 0-100
-  rating: 'Hardened' | 'Secure' | 'Moderate' | 'Weak' | 'Critical';
+  riskPenalty: number;
+  evidenceCoveragePercent: number;
+  assessmentStatus: 'COMPLETE' | 'PARTIAL' | 'INSUFFICIENT';
+  rating: 'Hardened' | 'Secure' | 'Moderate' | 'Weak' | 'Critical' | 'Not Rated';
   findings: SecurityFinding[];
-  complianceNist: boolean;
-  complianceRfc8221: boolean;
-  complianceNsaCnsa: boolean;
+  complianceNist: boolean | null;
+  complianceRfc8221: boolean | null;
+  complianceNsaCnsa: boolean | null;
   metadataLeakageRisk: 'High' | 'Medium' | 'Low';
 }
 

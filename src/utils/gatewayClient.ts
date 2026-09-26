@@ -4,6 +4,7 @@ import type {
   GatewayTelemetrySummary,
 } from '../types';
 import { getApiBaseUrl, buildGatewayTelemetrySummary } from './scapyClient';
+import type { TestbedSettings } from './testbedConfig';
 
 export async function fetchGateways(): Promise<GatewaySummary[]> {
   const response = await fetch(`${getApiBaseUrl()}/api/gateways`);
@@ -178,7 +179,58 @@ export interface GatewaySecurityReport {
   securityAssessment: {
     findings: Array<{ category: string; severity: string; value: string; detail: string }>;
     source: string;
+    score: {
+      value: number;
+      max: 100;
+      rating: string;
+      status: 'COMPLETE' | 'PARTIAL' | 'INSUFFICIENT';
+      evidenceCoveragePercent: number;
+      assessedWeight: number;
+      totalWeight: number;
+      method: string;
+      factors: Array<{ category: string; weight: number; status: string; points: number }>;
+    };
+    configurationRecommendations: Array<{
+      id: string;
+      setting: string;
+      current: string;
+      recommended: string;
+      basis: string;
+    }>;
+    charts: {
+      securityScore: number;
+      evidenceCoveragePercent: number;
+      findingSeverityCounts: Record<string, number>;
+    };
+    childSaEvidence?: Array<{
+      spi: string | null;
+      observed_spis: string[];
+      collected_at?: string | null;
+      sa_identity_status: 'CONFIRMED' | 'NOT_DETERMINABLE';
+      fields: Record<string, {
+        value: unknown;
+        source: string;
+        status: 'CONFIRMED' | 'NOT_DETERMINABLE';
+        evidence: string;
+      }>;
+    }>;
     limitations: string[];
+  };
+}
+
+export interface GatewayAiReport {
+  source: 'GROQ_LLM';
+  model: string;
+  reportGeneratedAt: string;
+  score: GatewaySecurityReport['securityAssessment']['score'];
+  findings: GatewaySecurityReport['securityAssessment']['findings'];
+  limitations: string[];
+  configurationRecommendations: GatewaySecurityReport['securityAssessment']['configurationRecommendations'];
+  charts: GatewaySecurityReport['securityAssessment']['charts'];
+  narrative: {
+    executive_summary: string;
+    technical_interpretation: string;
+    recommendation_notes: Array<{ id: string; note: string }>;
   };
 }
 
@@ -191,4 +243,71 @@ export async function fetchGatewayReport(gatewayId: string): Promise<GatewaySecu
     throw new Error(payload.error ?? `Failed to generate gateway report (HTTP ${response.status})`);
   }
   return (await response.json()) as GatewaySecurityReport;
+}
+
+export async function generateGatewayAiReport(gatewayId: string): Promise<GatewayAiReport> {
+  const response = await fetch(
+    `${getApiBaseUrl()}/api/gateways/${encodeURIComponent(gatewayId)}/ai-report`,
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' },
+  );
+  const payload = await response.json().catch(() => ({})) as { error?: string } & Partial<GatewayAiReport>;
+  if (!response.ok) {
+    const messages: Record<string, string> = {
+      GROQ_API_KEY_NOT_CONFIGURED: 'Set GROQ_API_KEY in the project .env file and restart the API.',
+      GROQ_RATE_LIMITED: 'Groq rate limit reached. Try again later.',
+      GROQ_UNAVAILABLE: 'Groq is unavailable. PDF export still works without AI narrative.',
+    };
+    throw new Error(messages[payload.error ?? ''] ?? `AI report failed (${payload.error ?? response.status})`);
+  }
+  return payload as GatewayAiReport;
+}
+
+export interface TestbedApplyJob {
+  jobId: string;
+  status: 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED';
+  message: string;
+  connectionName?: string;
+  childName?: string;
+}
+
+export async function queueTestbedApply(
+  gatewayId: string,
+  settings: TestbedSettings,
+  controlToken: string,
+): Promise<TestbedApplyJob> {
+  const response = await fetch(
+    `${getApiBaseUrl()}/api/gateways/${encodeURIComponent(gatewayId)}/testbed`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Testbed-Token': controlToken },
+      body: JSON.stringify({ confirmed: true, settings }),
+    },
+  );
+  const payload = await response.json().catch(() => ({})) as TestbedApplyJob & { error?: string };
+  if (!response.ok) {
+    const messages: Record<string, string> = {
+      TESTBED_CONTROL_TOKEN_NOT_CONFIGURED: 'Set VPN_ANALYZER_TESTBED_TOKEN in the API .env, then restart the API.',
+      GATEWAY_NOT_CONNECTED: 'The selected gateway is not connected.',
+      GATEWAY_NOT_FOUND: 'The selected gateway was not found.',
+      TESTBED_JOB_ALREADY_ACTIVE: 'A testbed apply is already queued or running for this gateway.',
+      EXPLICIT_CONFIRMATION_REQUIRED: 'Confirm the gateway change before applying.',
+      UNAUTHORIZED: 'Testbed control token is not valid.',
+    };
+    throw new Error(messages[payload.error ?? ''] ?? `Could not queue testbed (${payload.error ?? response.status})`);
+  }
+  return payload;
+}
+
+export async function getTestbedApplyStatus(
+  gatewayId: string,
+  jobId: string,
+  controlToken: string,
+): Promise<TestbedApplyJob> {
+  const response = await fetch(
+    `${getApiBaseUrl()}/api/gateways/${encodeURIComponent(gatewayId)}/testbed/${encodeURIComponent(jobId)}`,
+    { headers: { 'X-Testbed-Token': controlToken } },
+  );
+  const payload = await response.json().catch(() => ({})) as TestbedApplyJob & { error?: string };
+  if (!response.ok) throw new Error(`Could not read testbed job status (${payload.error ?? response.status})`);
+  return payload;
 }

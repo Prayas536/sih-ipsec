@@ -151,7 +151,7 @@ export function auditIpsecSecurity(sa: IkeSecurityAssociation): SecurityScorecar
       description: 'A DH transform was observed, but its group strength is not known to this analyzer.',
       remediation: 'Confirm the DH group through an updated transform registry or authorized gateway telemetry.',
     });
-  } else if (sa.dhGroupNumber < 14 || sa.dhBits < 2048) {
+  } else if (sa.dhGroupNumber < 14 || (sa.dhGroupNumber < 19 && sa.dhBits < 2048)) {
     const penalty = 30;
     totalScore -= penalty;
     findings.push({
@@ -298,15 +298,32 @@ export function auditIpsecSecurity(sa: IkeSecurityAssociation): SecurityScorecar
     });
   }
 
-  // Normalize Total Score
+  // Keep observed risk separate from evidence completeness; unknown controls earn no score credit.
   totalScore = Math.max(0, Math.min(100, totalScore));
+  const riskPenalty = 100 - totalScore;
+  const scoreEvidence = [
+    { weight: 10, known: sa.ikeVersion !== 'Not observed in capture' },
+    { weight: 20, known: !encUpper.includes('NOT OBSERVED') && !encUpper.includes('UNKNOWN') && sa.encryptionKeyBits > 0 },
+    { weight: 15, known: sa.dhGroupNumber > 0 && !sa.dhGroup.toUpperCase().includes('UNKNOWN') },
+    { weight: 15, known: !authUpper.includes('NOT OBSERVED') && !authUpper.includes('UNKNOWN') },
+    { weight: 15, known: sa.pfsEnabled !== null },
+    { weight: 10, known: sa.keyLifetimeSeconds !== null },
+    { weight: 15, known: sa.replayProtection !== null },
+  ];
+  const evidenceCoveragePercent = scoreEvidence.reduce(
+    (weight, item) => weight + (item.known ? item.weight : 0),
+    0,
+  );
+  const assessmentStatus: SecurityScorecard['assessmentStatus'] = evidenceCoveragePercent === 100
+    ? 'COMPLETE'
+    : evidenceCoveragePercent === 0 ? 'INSUFFICIENT' : 'PARTIAL';
+  totalScore = Math.round(totalScore * evidenceCoveragePercent / 100);
 
-  let rating: SecurityScorecard['rating'] = 'Critical';
-  if (totalScore >= 90) rating = 'Hardened';
-  else if (totalScore >= 75) rating = 'Secure';
-  else if (totalScore >= 55) rating = 'Moderate';
-  else if (totalScore >= 35) rating = 'Weak';
-  else rating = 'Critical';
+  let rating: SecurityScorecard['rating'] = evidenceCoveragePercent === 0 ? 'Not Rated' : 'Critical';
+  if (evidenceCoveragePercent > 0 && totalScore >= 90) rating = 'Hardened';
+  else if (evidenceCoveragePercent > 0 && totalScore >= 75) rating = 'Secure';
+  else if (evidenceCoveragePercent > 0 && totalScore >= 55) rating = 'Moderate';
+  else if (evidenceCoveragePercent > 0 && totalScore >= 35) rating = 'Weak';
 
   // Standards Compliance
   const hasCritical = findings.some((f) => f.severity === 'Critical');
@@ -319,12 +336,25 @@ export function auditIpsecSecurity(sa: IkeSecurityAssociation): SecurityScorecar
     !authUpper.includes('NOT OBSERVED') &&
     !authUpper.includes('UNKNOWN') &&
     sa.dhGroupNumber > 0;
-  const complianceNist = cryptoEvidenceKnown && !hasCritical && !hasHigh && sa.ikeVersion === 'IKEv2';
-  const complianceRfc8221 = cryptoEvidenceKnown && !hasCritical && !authUpper.includes('MD5') && !authUpper.includes('SHA1');
-  const complianceNsaCnsa = cryptoEvidenceKnown && totalScore >= 90 && sa.encryptionKeyBits === 256 && sa.dhGroupNumber >= 19;
+  const nistEvidenceComplete = cryptoEvidenceKnown && sa.ikeVersion !== 'Not observed in capture' &&
+    sa.pfsEnabled !== null && sa.keyLifetimeSeconds !== null && sa.replayProtection !== null;
+  const rfcEvidenceComplete = cryptoEvidenceKnown;
+  const cnsaEvidenceComplete = cryptoEvidenceKnown && sa.encryptionKeyBits > 0 && sa.dhGroupNumber > 0;
+  const complianceNist = !nistEvidenceComplete
+    ? null
+    : !hasCritical && !hasHigh && sa.ikeVersion === 'IKEv2' && sa.pfsEnabled === true && sa.replayProtection === true;
+  const complianceRfc8221 = !rfcEvidenceComplete
+    ? null
+    : !hasCritical && !authUpper.includes('MD5') && !authUpper.includes('SHA1');
+  const complianceNsaCnsa = !cnsaEvidenceComplete
+    ? null
+    : totalScore >= 90 && sa.encryptionKeyBits === 256 && sa.dhGroupNumber >= 19;
 
   return {
     totalScore,
+    riskPenalty,
+    evidenceCoveragePercent,
+    assessmentStatus,
     rating,
     findings,
     complianceNist,
