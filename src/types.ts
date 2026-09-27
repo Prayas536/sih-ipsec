@@ -175,7 +175,7 @@ export interface SecurityScorecard {
   complianceNist: boolean | null;
   complianceRfc8221: boolean | null;
   complianceNsaCnsa: boolean | null;
-  metadataLeakageRisk: 'High' | 'Medium' | 'Low';
+  metadataLeakageRisk: 'High' | 'Medium' | 'Low' | 'Unknown';
 }
 
 export interface GatewayTelemetryRecord {

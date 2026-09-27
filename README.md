@@ -1,19 +1,27 @@
 # AI-Powered IPsec VPN Protocol Analyzer & Security Assessment Framework
 
+## Prototype deliverables
+
+- **Working software and interactive dashboard:** run `python server/api_server.py`, `python server/scapy_analyzer.py`, and `npm run dev` in separate terminals; open `http://127.0.0.1:3000`.
+- **AI classification engine:** four bundled trained cryptographic-parameter models in `feature_extractor/ml/models/`; workload classification is a rule-based ESP metadata baseline.
+- **Security assessment:** evidence-adjusted security score, observed risk score, threat matrix, traffic and metadata inference, and model confidence. Executive and technical Markdown, JSON, and PDF reports are ready after each analysis; optional Groq prose is requested when a report opens.
+- **Demonstration video:** [`demo/prototype-demo.webm`](demo/prototype-demo.webm) and [`demo/README.md`](demo/README.md).
+- **Technical documentation:** [`ARCHITECTURE.md`](ARCHITECTURE.md), [`API.md`](API.md), [`ML_MODEL.md`](ML_MODEL.md), and [`SECURITY_MODEL.md`](SECURITY_MODEL.md).
+- **Training/testing dataset:** [`DATASET.md`](DATASET.md) and the included CSV splits under `feature_extractor/`.
+
+The training set covers controlled synthetic cryptographic configurations. It does not establish real-world application classification accuracy; model probabilities and rule-based traffic pattern scores are shown separately.
+
 > **NTRO Problem Statement 26160** | Smart India Hackathon  
 > Automated Cryptographic Security Assessment & Encrypted ESP Traffic Classification
 
 ![NTRO Security Framework](https://img.shields.io/badge/Security_Standard-NIST_SP_800--77_Rev._1-blue?style=flat-square)
 ![RFC Compliance](https://img.shields.io/badge/Standards-RFC_8221_%7C_RFC_7296-emerald?style=flat-square)
-![ML Engine](https://img.shields.io/badge/AI_Engine-Random_Forest_Shape_Classifier-purple?style=flat-square)
+![ML Engine](https://img.shields.io/badge/AI_Engine-Cryptographic_Random_Forest-purple?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-slate?style=flat-square)
 
 ---
 
 ## 📌 Executive Summary
-
-# Optional, recommended for richer Scapy-based dissection
-python -m pip install -r requirements.txt
 
 Virtual Private Networks (VPNs) built on **IPsec (Internet Protocol Security)** form the backbone of national critical infrastructure, defense networks, and inter-branch banking communications. 
 
@@ -42,7 +50,7 @@ For offline API and authorized metadata ingestion, start the localhost API in an
 python server/api_server.py
 ```
 
-It exposes `POST /api/analyze/pcap` for raw PCAP/PCAPNG bytes and `POST /api/agent/telemetry` for authenticated, sanitized metadata. Set `VPN_ANALYZER_AGENT_TOKEN` before starting the API to enable telemetry ingestion. The API does not persist data and is not a public cloud deployment.
+It exposes `POST /api/analyze/pcap` for raw PCAP/PCAPNG bytes and `POST /api/agent/telemetry` for authenticated, sanitized metadata. Set `VPN_ANALYZER_AGENT_TOKEN` before starting the API to enable telemetry ingestion. Gateway records and analysis metadata are stored in the local SQLite database under `data/`; this is a local prototype, not a public cloud deployment.
 
 For optional Groq-assisted gateway report prose, copy `.env.example` to `.env` and set `GROQ_API_KEY` before starting the API. `GROQ_MODEL` defaults to `qwen/qwen3.8-27b`. The key is read only by the Python API and must not be placed in browser code. Gateway findings, evidence coverage, scores, chart data, and configuration recommendations are computed deterministically; Groq may only summarize supplied evidence and explain approved recommendations. PDF export is generated locally and remains available without a Groq key.
 
@@ -61,10 +69,10 @@ python server/vpn_analyzer_agent.py --mode local --live --interface Ethernet --c
 ```
 
 Live capture is metadata-only and requires capture permissions for the selected operating-system interface.
-2. **AI Encrypted Traffic Fingerprinting**: Employs supervised machine learning on flow shape characteristics (packet length distributions, inter-arrival time cadence, burst ratios, and Shannon entropy) to classify applications (VoIP, Video Streaming, Web, Bulk Data, Telemetry) inside opaque ESP ciphertext **without breaking encryption**.
+2. **Encrypted Traffic Inference**: Uses trained models for cryptographic parameter estimates when the Scapy service is available. A separate rule-based baseline ranks possible workload categories from ESP packet metadata; this does not identify decrypted applications.
 3. **Interactive PCAP Dissector**: A web-based packet dissector providing frame-by-frame inspection, SPI tracking, protocol filtering, and raw hexadecimal payload views.
-4. **VPN Testbed & Remediation Generator**: Generates production-ready `strongSwan (swanctl.conf)` and `ip xfrm` scripts with custom synthetic PCAP export for automated testing.
-5. **Automated Audit Reporting**: Generates downloadable Executive (business-impact) and Technical (remediation) compliance reports.
+4. **VPN Testbed & Remediation Generator**: Generates reviewable `strongSwan (swanctl.conf)` and `ip xfrm` examples with synthetic PCAP export for controlled testing.
+5. **Automated Audit Reporting**: Generates downloadable Executive and Technical security assessments. Standards status is reported as unverified when evidence is incomplete.
 
 ---
 
@@ -91,7 +99,7 @@ Live capture is metadata-only and requires capture permissions for the selected 
                  │                                  │
                  ▼                                  ▼
      ┌────────────────────────┐         ┌────────────────────────┐
-     │ NIST SP 800-77 / RFC   │         │ AI Shape Classifier    │
+     │ NIST SP 800-77 / RFC   │         │ ESP Shape Heuristic    │
      │ Compliance Scoring     │         │   (aiClassifier.ts)    │
      │ • Sweet32 (3DES)       │         │ • Packet Length Mean/SD│
      │ • Logjam (DH Group 2)  │         │ • Inter-Arrival Times  │
@@ -137,9 +145,9 @@ Even military-grade encryption does not mask the **physical transmission charact
 1. **Packet Size Histograms ($L_\mu, L_\sigma$)**: Audio calls transmit small, fixed-length frames (~120–160 bytes); file downloads saturate the network MTU (~1420–1500 bytes).
 2. **Inter-Arrival Time ($IAT_\mu$)**: Interactive voice streams pulse at strict isochronous intervals (~20ms); web traffic produces bursty gaps; video buffers in chunked bursts.
 3. **Flow Symmetry ($S_{flow}$)**: Video streaming is highly asymmetric ($\ge 90\%$ downlink); VoIP is balanced ($\approx 50/50$).
-4. **Shannon Entropy Verification ($H$)**:
+4. **Shannon Entropy Measurement ($H$)**:
    $$H(X) = -\sum_{i=1}^{n} P(x_i) \log_2 P(x_i)$$
-   True encrypted ESP ciphertext scores between **7.60 and 7.99 bits per byte**. Computing this verifies that the payload is genuinely encrypted and that the AI's classification is based entirely on statistical shape rather than plaintext data leakage.
+   Entropy measures byte distribution. It cannot by itself prove that bytes are encrypted or identify the application inside ESP. Workload inference uses packet metadata and remains uncertain.
 
 ---
 
@@ -157,6 +165,9 @@ cd ai-ipsec-vpn-analyzer
 
 # Install dependencies
 npm install
+
+# Install the optional Scapy and model dependencies
+python -m pip install -r requirements.txt
 
 # Start Vite development server
 npm run dev

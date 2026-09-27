@@ -42,7 +42,8 @@ export function classifyEspTraffic(features: EspTrafficFeatures): AiPrediction {
     };
   }
 
-  // AI Statistical Pattern Matching / Distance-based Multi-class Inference
+  // Deterministic pattern matching baseline. These relative scores are not
+  // calibrated probabilities and do not come from the trained crypto models.
   // Archetypes:
   // 1. VoIP / Audio: small uniform packets (120-220b), low std (<40), strict 20ms IAT, high symmetry
   // 2. Video Streaming: large mean (900-1300b), medium std, low IAT (10-30ms), downstream heavy
@@ -146,7 +147,7 @@ export function classifyEspTraffic(features: EspTrafficFeatures): AiPrediction {
       name: 'Ciphertext Entropy',
       value: `${features.calculatedEntropy} / 8.00 bits`,
       impact: features.calculatedEntropy > 7.90 ? ('Supporting' as const) : ('Neutral' as const),
-      explanation: 'Shannon entropy verifies payloads are pseudo-random ciphertext, proving classification is shape-based rather than plaintext leakage.',
+      explanation: 'Entropy describes byte distribution but cannot prove encryption or reveal the application inside ESP.',
     },
   ];
 
@@ -155,8 +156,8 @@ export function classifyEspTraffic(features: EspTrafficFeatures): AiPrediction {
     confidenceScore: top.probability,
     probabilities,
     primaryFeatures,
-    source: 'ML_INFERENCE',
+    source: 'DERIVED_FROM_OBSERVED_DATA',
     status: 'INFERRED',
-    evidence: 'Heuristic baseline inferred traffic behavior from aggregate ESP metadata; no cryptographic fields were inferred.',
+    evidence: 'Rule-based traffic pattern match from aggregate ESP metadata; percentages are relative scores, not calibrated probabilities.',
   };
 }

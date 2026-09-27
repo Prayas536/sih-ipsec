@@ -150,7 +150,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="bg-white border border-slate-200 rounded-lg p-3.5">
           <span className="text-xs font-medium text-slate-500 block">Available Reports</span>
           <div className="text-2xl font-bold text-slate-900 mt-1">
-            {scenarios.length + gateways.length}
+            {scenarios.reduce((count, scenario) => count + 2 + (scenario.gatewayTelemetry?.matchedSpis?.length ? 1 : 0), gateways.length)}
           </div>
           <span className="text-[11px] text-slate-400 mt-0.5 block">Audit documents</span>
         </div>

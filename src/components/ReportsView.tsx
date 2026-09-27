@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { FileText, Download, Eye, Server, Shield, Search, Filter } from 'lucide-react';
 import { GatewaySummary, VpnCaptureScenario } from '../types';
+import type { AssessmentReportKind } from '../utils/assessmentReport';
 
 interface ReportsViewProps {
   scenarios: VpnCaptureScenario[];
   gateways: GatewaySummary[];
-  onViewScenarioReport: (scenario: VpnCaptureScenario) => void;
+  onViewScenarioReport: (scenario: VpnCaptureScenario, kind: AssessmentReportKind) => void;
   onViewGatewayReport: (gatewayId: string) => void;
 }
 
@@ -19,17 +20,18 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
   const [search, setSearch] = useState('');
 
   // Assemble list of available audit documents
-  const scenarioReports = scenarios.map((s) => {
+  const scenarioReports = scenarios.flatMap((s) => {
     const isCombined = !!s.gatewayTelemetry && s.gatewayTelemetry.matchedSpis?.length > 0;
-    const mode = isCombined ? ('COMBINED' as const) : ('PCAP' as const);
-    return {
-      id: `pcap-${s.id}`,
-      title: s.name,
-      mode,
+    const base = {
       gateway: s.gatewayTelemetry?.gatewayId || '—',
       created: s.id.startsWith('uploaded-') ? new Date(Number(s.id.split('-')[1])).toLocaleTimeString() : 'Recent',
       rawScenario: s,
     };
+    return [
+      { ...base, id: `pcap-${s.id}-executive`, title: `${s.name} — Executive`, mode: 'PCAP' as const, reportKind: 'EXECUTIVE' as const },
+      { ...base, id: `pcap-${s.id}-technical`, title: `${s.name} — Technical`, mode: 'PCAP' as const, reportKind: 'TECHNICAL' as const },
+      ...(isCombined ? [{ ...base, id: `pcap-${s.id}-combined`, title: `${s.name} — Combined`, mode: 'COMBINED' as const, reportKind: 'COMBINED' as const }] : []),
+    ];
   });
 
   const gatewayReports = gateways.map((g) => ({
@@ -154,7 +156,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                           if (report.mode === 'GATEWAY') {
                             onViewGatewayReport(report.gatewayId);
                           } else {
-                            onViewScenarioReport(report.rawScenario);
+                            onViewScenarioReport(report.rawScenario, report.reportKind);
                           }
                         }}
                         className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded hover:border-slate-400 cursor-pointer shadow-xs"

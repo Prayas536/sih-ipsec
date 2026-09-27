@@ -360,6 +360,6 @@ export function auditIpsecSecurity(sa: IkeSecurityAssociation): SecurityScorecar
     complianceNist,
     complianceRfc8221,
     complianceNsaCnsa,
-    metadataLeakageRisk: sa.operationalMode === 'Transport Mode' ? 'High' : 'Medium',
+    metadataLeakageRisk: sa.operationalMode === 'Transport Mode' ? 'High' : sa.operationalMode === 'Tunnel Mode' ? 'Medium' : 'Unknown',
   };
 }

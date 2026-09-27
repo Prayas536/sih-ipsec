@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   X,
   Download,
@@ -13,6 +13,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { CaptureAiNarrative, generateCaptureAiNarrative } from '../utils/reportClient';
+import { AssessmentReportKind, buildAssessmentSnapshot, buildReportSections, formatAssessmentMarkdown } from '../utils/assessmentReport';
 import { AiPrediction, IkeSecurityAssociation, SecurityScorecard, VpnCaptureScenario } from '../types';
 import { CombinedAnalysisPanel } from './CombinedAnalysisPanel';
 import jsPDF from 'jspdf';
@@ -24,6 +25,7 @@ interface ReportModalProps {
   scenario: VpnCaptureScenario;
   scorecard: SecurityScorecard;
   prediction: AiPrediction;
+  initialKind?: AssessmentReportKind;
 }
 
 export const ReportModal: React.FC<ReportModalProps> = ({
@@ -32,18 +34,41 @@ export const ReportModal: React.FC<ReportModalProps> = ({
   scenario,
   scorecard,
   prediction,
+  initialKind = 'EXECUTIVE',
 }) => {
-  const [reportType, setReportType] = useState<'EXECUTIVE' | 'TECHNICAL' | 'COMBINED'>('EXECUTIVE');
+  const [reportType, setReportType] = useState<AssessmentReportKind>(initialKind);
   const [copied, setCopied] = useState(false);
   const [aiNarrative, setAiNarrative] = useState<CaptureAiNarrative | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const requestedScenario = useRef<string | null>(null);
+  const currentScenario = useRef(scenario.id);
+  currentScenario.current = scenario.id;
+
+  useEffect(() => { if (isOpen) setReportType(initialKind); }, [isOpen, initialKind, scenario.id]);
+
+  // Deterministic reports are ready immediately. Enrich the current capture
+  // once when the report opens; a provider failure leaves both reports usable.
+  useEffect(() => {
+    if (!isOpen || requestedScenario.current === scenario.id) return;
+    requestedScenario.current = scenario.id;
+    setAiNarrative(null);
+    setAiError(null);
+    setAiLoading(true);
+    generateCaptureAiNarrative(scenario, scorecard, prediction)
+      .then((result) => { if (currentScenario.current === scenario.id) setAiNarrative(result); })
+      .catch((error: unknown) => { if (currentScenario.current === scenario.id) setAiError(error instanceof Error ? error.message : 'AI narrative generation failed.'); })
+      .finally(() => { if (currentScenario.current === scenario.id) setAiLoading(false); });
+  }, [isOpen, scenario, scorecard, prediction]);
 
   if (!isOpen) return null;
 
+  const snapshot = buildAssessmentSnapshot(scenario, scorecard, prediction);
+  const reportSections = buildReportSections(reportType, scenario, scorecard, prediction, aiNarrative?.narrative);
+
   const handleGenerateAiNarrative = async () => {
     setAiLoading(true); setAiError(null);
-    try { setAiNarrative(await generateCaptureAiNarrative(scorecard, prediction)); }
+    try { setAiNarrative(await generateCaptureAiNarrative(scenario, scorecard, prediction)); }
     catch (error) { setAiError(error instanceof Error ? error.message : 'AI narrative generation failed.'); }
     finally { setAiLoading(false); }
   };
@@ -84,6 +109,8 @@ export const ReportModal: React.FC<ReportModalProps> = ({
       scorecard,
       prediction,
       aiNarrative,
+      assessment: snapshot,
+      sections: reportSections,
     };
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -153,8 +180,8 @@ export const ReportModal: React.FC<ReportModalProps> = ({
     doc.text(`${scenario.name} | ${reportType} | ${new Date().toISOString()}`, margin, y);
     y += 9;
 
-    section('Score and Evidence Coverage');
-    paragraph(`${scorecard.totalScore}/100 | ${scorecard.rating} | ${scorecard.assessmentStatus} | ${scorecard.evidenceCoveragePercent}% evidence coverage | ${scorecard.riskPenalty} known-risk penalty points`);
+    section('Assessment scores');
+    paragraph(`Security ${scorecard.totalScore}/100 | Observed risk ${snapshot.riskScore === null ? 'Not rated' : `${snapshot.riskScore}/100`} | Evidence coverage ${scorecard.evidenceCoveragePercent}% (${scorecard.assessmentStatus})`);
     const barWidth = pageWidth - margin * 2;
     const scoreBar = (label: string, value: number, color: [number, number, number]) => {
       doc.setFontSize(8);
@@ -169,45 +196,10 @@ export const ReportModal: React.FC<ReportModalProps> = ({
     scoreBar('Evidence-adjusted score', scorecard.totalScore, [25, 132, 105]);
     scoreBar('Evidence coverage', scorecard.evidenceCoveragePercent, [42, 115, 165]);
 
-    section('AI-Assisted Narrative');
-    paragraph(aiNarrative?.narrative.executive_summary ?? 'Not generated. The report remains evidence-based and can be exported without an external AI narrative.');
-    if (aiNarrative?.narrative.technical_interpretation) paragraph(aiNarrative.narrative.technical_interpretation);
-
-    section('Observed Security Findings');
-    table(['Severity', 'Parameter', 'Detected', 'Recommendation'], scorecard.findings.map((finding) => [
-      finding.severity,
-      finding.parameter,
-      finding.detectedValue,
-      finding.remediation,
-    ]));
-
-    section('Cryptographic Parameters');
-    table(['Parameter', 'Value'], [
-      ['IKE version', scenario.sa.ikeVersion],
-      ['Operating mode', scenario.sa.operationalMode],
-      ['Encryption', `${scenario.sa.encryptionAlgorithm} (${scenario.sa.encryptionKeyBits}-bit)`],
-      ['Integrity', scenario.sa.authIntegrityAlgorithm],
-      ['DH group', scenario.sa.dhGroup],
-      ['PFS', scenario.sa.pfsEnabled === null ? 'Not determined' : scenario.sa.pfsEnabled ? 'Enabled' : 'Disabled'],
-      ['Key lifetime', scenario.sa.keyLifetimeSeconds === null ? 'Not determined' : `${scenario.sa.keyLifetimeSeconds} seconds`],
-      ['Replay protection', scenario.sa.replayProtection === null ? 'Not determined' : scenario.sa.replayProtection ? 'Enabled' : 'Disabled'],
-    ]);
-
-    section('Encrypted Traffic Classification');
-    table(['Result', 'Confidence', 'Packet count', 'Entropy'], [[
-      prediction.predictedClass,
-      `${prediction.confidenceScore}%`,
-      String(scenario.features.packetCount),
-      `${scenario.features.calculatedEntropy} bits/byte`,
-    ]]);
-
-    if (scenario.gatewayTelemetry) {
-      section('Gateway Correlation');
-      table(['Gateway status', 'Correlation', 'Matched SPIs'], [[
-        scenario.gatewayTelemetry.gatewayStatus,
-        scenario.gatewayTelemetry.correlationStatus,
-        scenario.gatewayTelemetry.matchedSpis.join(', ') || 'No exact match',
-      ]]);
+    for (const reportSection of reportSections) {
+      section(reportSection.title);
+      for (const line of reportSection.lines || []) paragraph(line);
+      if (reportSection.table) table(reportSection.table.headers, reportSection.table.rows);
     }
 
     const totalPages = doc.getNumberOfPages();
@@ -221,95 +213,13 @@ export const ReportModal: React.FC<ReportModalProps> = ({
     doc.save(`IPsec_Security_Report_${scenario.id}_${reportType.toLowerCase()}.pdf`);
   };
 
-  const generateMarkdownReport = () => {
-    const gt = scenario.gatewayTelemetry;
-    const hasTelemetry = !!gt;
-
-    let telemetrySection = '';
-    if (hasTelemetry) {
-      telemetrySection = `
----
-
-## 5. Gateway Telemetry & Correlation Audit (Mode 3)
-- **Gateway ID:** \`${gt.gatewayId || 'N/A'}\`
-- **Adapter:** \`${gt.adapter || 'STRONGSWAN'}\`
-- **Gateway Status:** \`${gt.gatewayStatus}\`
-- **Correlation Status:** \`${gt.correlationStatus}\`
-- **Exact Matched SPIs:** ${gt.matchedSpis.length > 0 ? gt.matchedSpis.map((s) => `\`${s}\``).join(', ') : 'No exact match'}
-- **Unmatched PCAP SPIs:** ${gt.unmatchedPcapSpis.length > 0 ? gt.unmatchedPcapSpis.map((s) => `\`${s}\``).join(', ') : 'None'}
-- **Telemetry Collected At:** ${gt.collectedAt || 'N/A'}
-- **Gateway Evidence:** ${gt.evidence.length > 0 ? gt.evidence.join('; ') : 'No gateway evidence'}
-`;
-    }
-
-    return `# NTRO IPsec Security Assessment Report: ${scenario.name}
-**Report Type:** ${
-      reportType === 'EXECUTIVE'
-        ? 'Executive Leadership Summary'
-        : reportType === 'TECHNICAL'
-        ? 'Detailed Technical Protocol Audit'
-        : 'Mode 3 Combined PCAP & Gateway Correlation Audit'
-    }
-**Target Organization:** ${scenario.organization}
-**Generated Date:** ${new Date().toISOString()}
-
----
-
-## 1. Overall Security Scorecard
-- **Security Score:** ${scorecard.totalScore} / 100 (${scorecard.rating.toUpperCase()})
-- **Evidence Coverage:** ${scorecard.evidenceCoveragePercent}% (${scorecard.assessmentStatus})
-- **Known-Risk Penalties:** ${scorecard.riskPenalty} points; unknown controls receive no score credit.
-- **NIST SP 800-77 Rev. 1 Status:** ${scorecard.complianceNist === null ? 'NOT VERIFIED' : scorecard.complianceNist ? 'COMPLIANT' : 'NON-COMPLIANT'}
-- **RFC 8221 Cryptographic Status:** ${scorecard.complianceRfc8221 === null ? 'NOT VERIFIED' : scorecard.complianceRfc8221 ? 'COMPLIANT' : 'NON-COMPLIANT'}
-- **NSA CNSA Suite Status:** ${scorecard.complianceNsaCnsa === null ? 'NOT VERIFIED' : scorecard.complianceNsaCnsa ? 'COMPLIANT' : 'NON-COMPLIANT'}
-
----
-
-## 2. Inferred Traffic & AI Classification
-- **Predicted Payload Activity:** ${prediction.predictedClass}
-- **AI Model Confidence:** ${prediction.confidenceScore}%
-- **Entropy:** ${scenario.features.calculatedEntropy} / 8.00 bits (Verified encrypted payload)
-
-## 2A. AI-Assisted Report Narrative
-${aiNarrative ? `- **Provider:** ${aiNarrative.source} (${aiNarrative.model})
-- **Executive Narrative:** ${aiNarrative.narrative.executive_summary}
-- **Technical Interpretation:** ${aiNarrative.narrative.technical_interpretation}` : 'Not generated. This deterministic report contains packet evidence, rule-engine findings, and traffic inference without external AI prose.'}
-
----
-
-## 3. Cryptographic Parameters
-- **IKE Version:** ${scenario.sa.ikeVersion}
-- **Operating Mode:** ${scenario.sa.operationalMode} (${scenario.sa.ipVersion})
-- **Symmetric Cipher:** ${scenario.sa.encryptionAlgorithm} (${scenario.sa.encryptionKeyBits}-bit)
-- **Integrity / Hash:** ${scenario.sa.authIntegrityAlgorithm}
-- **Diffie-Hellman Group:** ${scenario.sa.dhGroup} (${scenario.sa.dhBits}-bit)
-- **Perfect Forward Secrecy (PFS):** ${scenario.sa.pfsEnabled === null ? 'NOT OBSERVED' : scenario.sa.pfsEnabled ? 'ENABLED' : 'DISABLED'}
-- **Key Lifetime:** ${scenario.sa.keyLifetimeSeconds === null ? 'NOT OBSERVED' : `${scenario.sa.keyLifetimeSeconds / 3600} hours`}
-- **Replay Protection:** ${scenario.sa.replayProtection === null ? 'NOT OBSERVED' : scenario.sa.replayProtection ? 'ENABLED' : 'DISABLED'}
-
----
-
-## 4. Key Findings & Remediation Plan
-${scorecard.findings
-  .filter((f) => f.severity !== 'Pass')
-  .map(
-    (f) => `### [${f.severity.toUpperCase()}] ${f.parameter}: ${f.threatName}
-- **Detected:** ${f.detectedValue}
-- **Standard Requirement:** ${f.recommendedValue}
-- **Threat:** ${f.description}
-- **Action Required:** ${f.remediation}
-`
-  )
-  .join('\n')}${telemetrySection}
-`;
-  };
-
+  const generateMarkdownReport = () => formatAssessmentMarkdown(reportType, scenario, reportSections);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/55 p-4 backdrop-blur-sm animate-fade-in">
-      <div className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-stone-300 bg-[#f7f5f0] shadow-[0_28px_80px_rgba(28,25,23,0.42)]">
+      <div className="report-canvas flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-stone-300 shadow-[0_28px_80px_rgba(28,25,23,0.42)]">
         
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-stone-200 bg-[#fffdf8] p-4 sm:p-5">
+        <div className="flex items-center justify-between border-b border-stone-200 bg-white p-4 sm:p-5">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-700 text-white shadow-md shadow-teal-900/20">
               <FileText className="w-5 h-5" />
@@ -376,7 +286,7 @@ ${scorecard.findings
         </div>
 
         {/* Modal Body */}
-        <div className="flex-1 space-y-6 overflow-y-auto bg-[#f7f5f0] p-6 text-xs text-stone-700">
+        <div className="report-canvas flex-1 space-y-6 overflow-y-auto p-6 text-xs text-stone-700">
           {reportType === 'COMBINED' && scenario.gatewayTelemetry ? (
             /* Mode 3 Combined Analysis View */
             <div className="space-y-6">
@@ -400,7 +310,7 @@ ${scorecard.findings
                       style={{ background: `conic-gradient(${scorecard.rating === 'Not Rated' ? '#a8a29e' : scorecard.totalScore >= 70 ? '#5eead4' : '#fbbf24'} ${scorecard.totalScore}%, #315650 0)` }}
                     >
                       <div className="grid h-full w-full place-items-center rounded-full bg-[#0d2521] text-center">
-                        <div><div className="text-3xl font-black leading-none text-white">{scorecard.totalScore}</div><div className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-teal-100/55">risk score / 100</div></div>
+                        <div><div className="text-3xl font-black leading-none text-white">{scorecard.totalScore}</div><div className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-teal-100/55">security score / 100</div></div>
                       </div>
                     </div>
                     <span className={`mt-3 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${scorecard.rating === 'Not Rated' ? 'border-stone-500 bg-stone-700 text-stone-100' : scorecard.totalScore >= 70 ? 'border-teal-300 bg-teal-100 text-teal-900' : 'border-amber-300 bg-amber-100 text-amber-950'}`}>
@@ -417,9 +327,10 @@ ${scorecard.findings
                       </div>
                       <span className="w-fit rounded-md border border-stone-300 bg-stone-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-stone-700">{scorecard.assessmentStatus}</span>
                     </div>
-                    <div className="mt-5 grid gap-2 sm:grid-cols-3">
+                    <div className="mt-5 grid gap-2 sm:grid-cols-4">
                       <div className="rounded-lg border border-stone-200 bg-stone-50 p-3"><p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Evidence coverage</p><p className="mt-1 text-base font-bold text-stone-900">{scorecard.evidenceCoveragePercent}%</p><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-stone-200"><div className="h-full rounded-full bg-teal-600" style={{ width: `${scorecard.evidenceCoveragePercent}%` }} /></div></div>
-                      <div className="rounded-lg border border-stone-200 bg-stone-50 p-3"><p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Observed findings</p><p className="mt-1 text-base font-bold text-stone-900">{scorecard.findings.filter((f) => f.severity !== 'Pass').length}</p><p className="mt-1 text-[10px] text-stone-500">Rule-engine assessment</p></div>
+                      <div className="rounded-lg border border-stone-200 bg-stone-50 p-3"><p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Risk score</p><p className="mt-1 text-base font-bold text-stone-900">{snapshot.riskScore === null ? 'Not rated' : `${snapshot.riskScore}/100`}</p><p className="mt-1 text-[10px] text-stone-500">Observed penalties</p></div>
+                      <div className="rounded-lg border border-stone-200 bg-stone-50 p-3"><p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">AI confidence</p><p className="mt-1 text-base font-bold text-stone-900">{snapshot.aiConfidenceScore === null ? 'Unavailable' : `${snapshot.aiConfidenceScore}%`}</p><p className="mt-1 text-[10px] text-stone-500">{snapshot.aiConfidenceModels} crypto models</p></div>
                       <div className="rounded-lg border border-stone-200 bg-stone-50 p-3"><p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Packet evidence</p><p className="mt-1 text-base font-bold text-stone-900">{scenario.packets.length} packets</p><p className="mt-1 text-[10px] text-stone-500">{scenario.sa.ikeVersion} · {scenario.sa.operationalMode}</p></div>
                     </div>
                   </div>
@@ -433,7 +344,7 @@ ${scorecard.findings
                 </section>
                 <aside className="rounded-xl border border-amber-200 bg-amber-50 p-4">
                   <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-amber-800">Traffic inference</p>
-                  <p className="mt-2 text-sm font-bold text-stone-900">{prediction.predictedClass} <span className="text-xs font-medium text-amber-800">· {prediction.confidenceScore}% confidence</span></p>
+                  <p className="mt-2 text-sm font-bold text-stone-900">{prediction.predictedClass} <span className="text-xs font-medium text-amber-800">· {snapshot.trafficMatchScore === null ? 'insufficient evidence' : `${snapshot.trafficMatchScore}% relative pattern match`}</span></p>
                   <p className="mt-2 leading-relaxed text-amber-950/75">Estimated from packet size and timing. ESP payloads remain encrypted; this is not decrypted content or confirmed ground truth.</p>
                 </aside>
               </div>
@@ -451,7 +362,7 @@ ${scorecard.findings
                 </h4>
                 <div className="space-y-2">
                   {scorecard.findings
-                    .filter((f) => f.severity !== 'Pass')
+                    .filter((f) => f.penalty > 0)
                     .map((f, i) => (
                       <div key={i} className="flex items-start gap-3 rounded-lg border border-stone-200 bg-white p-3 shadow-[0_2px_8px_rgba(68,64,60,0.04)]">
                         <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-amber-300 bg-amber-100 text-[10px] font-bold text-amber-900">
@@ -463,9 +374,14 @@ ${scorecard.findings
                         </div>
                       </div>
                     ))}
-                  {scorecard.findings.filter((f) => f.severity !== 'Pass').length === 0 && (
+                  {snapshot.threats.length === 0 && (
                     <div className="rounded-lg border border-teal-200 bg-teal-50 p-3 font-semibold text-teal-800">
-                      ✓ No immediate executive interventions required. Deployment meets defense standard requirements.
+                      No observed configuration risk was scored. Review evidence gaps before making a compliance conclusion.
+                    </div>
+                  )}
+                  {snapshot.evidenceGaps.length > 0 && (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-900">
+                      {snapshot.evidenceGaps.length} control{snapshot.evidenceGaps.length === 1 ? '' : 's'} need more capture or gateway evidence. These are not confirmed vulnerabilities.
                     </div>
                   )}
                 </div>
@@ -478,11 +394,22 @@ ${scorecard.findings
               
               <div className="space-y-2 rounded-xl border border-teal-900 bg-[#163733] p-4 text-teal-50 shadow-[0_8px_18px_rgba(19,78,74,0.16)]">
                 <div className="font-bold text-teal-300">[PROTOCOL AUDIT RECORD]</div>
-                <div>Target Gateway: {scenario.packets[0]?.destIp || '10.0.0.1'}</div>
+                <div>Target Gateway: {scenario.packets[0]?.destIp || 'Not observed'}</div>
                 <div>Initiator SPI: {scenario.sa.initiatorSpi}</div>
                 <div>Responder SPI: {scenario.sa.responderSpi}</div>
                 <div>Key Lifetime Window: {scenario.sa.keyLifetimeSeconds === null ? 'Not observed' : `${scenario.sa.keyLifetimeSeconds}s`}</div>
                 <div>Replay Protection: {scenario.sa.replayProtection === null ? 'Not observed' : scenario.sa.replayProtection ? `ENABLED${scenario.sa.replayWindowSize ? ` (Window ${scenario.sa.replayWindowSize})` : ''}` : 'DISABLED'}</div>
+              </div>
+
+              <div className="grid gap-2 sm:grid-cols-3">
+                <div className="rounded-lg border border-stone-200 bg-white p-3"><div className="text-stone-500">Security / observed risk</div><div className="mt-1 font-bold text-stone-900">{scorecard.totalScore}/100 · {snapshot.riskScore === null ? 'Not rated' : `${snapshot.riskScore}/100`}</div><div className="text-stone-500">Evidence coverage {scorecard.evidenceCoveragePercent}%</div></div>
+                <div className="rounded-lg border border-stone-200 bg-white p-3"><div className="text-stone-500">AI confidence score</div><div className="mt-1 font-bold text-stone-900">{snapshot.aiConfidenceScore === null ? 'Unavailable' : `${snapshot.aiConfidenceScore}%`}</div><div className="text-stone-500">Mean across {snapshot.aiConfidenceModels} trained crypto models</div></div>
+                <div className="rounded-lg border border-stone-200 bg-white p-3"><div className="text-stone-500">Metadata inference</div><div className="mt-1 font-bold text-stone-900">{prediction.predictedClass}</div><div className="text-stone-500">{snapshot.trafficMatchScore === null ? 'Insufficient ESP evidence' : `${snapshot.trafficMatchScore}% relative pattern match`}</div></div>
+              </div>
+
+              <div className="rounded-lg border border-violet-200 bg-violet-50 p-3">
+                <div className="font-bold text-violet-950">AI technical interpretation</div>
+                <p className="mt-1 text-violet-950/65">{aiLoading ? 'Generating from the report evidence…' : aiNarrative?.narrative.technical_interpretation || 'The deterministic technical report is ready. External AI prose is unavailable or still pending.'}</p>
               </div>
 
               {/* Technical Specifications */}
@@ -514,15 +441,17 @@ ${scorecard.findings
 
               {/* Raw Findings Data Table */}
               <div>
-                <h4 className="mb-2 font-sans font-bold text-stone-900">Audit Finding Details</h4>
-                <div className="overflow-hidden rounded-lg border border-stone-200 bg-white">
+                <h4 className="mb-2 font-sans font-bold text-stone-900">Threat Matrix and Evidence Gaps</h4>
+                <div className="overflow-x-auto rounded-lg border border-stone-200 bg-white">
                   <table className="w-full text-left">
                     <thead className="border-b border-stone-200 bg-stone-100 text-[10px] uppercase text-stone-500">
                       <tr>
                         <th className="p-2.5">Parameter</th>
                         <th className="p-2.5">Detected Value</th>
                         <th className="p-2.5">Severity</th>
-                        <th className="p-2.5">Identified Vulnerability</th>
+                        <th className="p-2.5">Risk / evidence</th>
+                        <th className="p-2.5">Score impact</th>
+                        <th className="p-2.5">Remediation</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-stone-100">
@@ -538,6 +467,8 @@ ${scorecard.findings
                             </span>
                           </td>
                           <td className="p-2.5 text-stone-500">{f.threatName}</td>
+                          <td className="p-2.5 text-stone-700">{f.penalty > 0 ? `-${f.penalty}` : '0'}</td>
+                          <td className="p-2.5 text-stone-700">{f.remediation}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -551,7 +482,7 @@ ${scorecard.findings
         </div>
 
         {/* Modal Footer Controls */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-stone-200 bg-[#fffdf8] p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-stone-200 bg-white p-4">
           <div className="text-xs text-stone-500">
             Exportable report format conforming to NTRO Deliverable E.
           </div>

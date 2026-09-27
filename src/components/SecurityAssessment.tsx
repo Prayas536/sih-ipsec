@@ -300,15 +300,15 @@ export const SecurityAssessment: React.FC<SecurityAssessmentProps> = ({
           </p>
         </div>
 
-        {scorecard.findings.filter((f) => f.severity !== 'Pass').length === 0 ? (
+        {scorecard.findings.filter((f) => f.penalty > 0).length === 0 ? (
           <div className="p-6 text-center text-emerald-700">
             <CheckCircle2 className="w-6 h-6 mx-auto mb-1 text-emerald-600" />
-            <span className="text-xs font-semibold">No critical or high-risk vulnerabilities identified.</span>
+            <span className="text-xs font-semibold">No observed configuration risk was scored. Check evidence gaps before drawing a security conclusion.</span>
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
             {scorecard.findings
-              .filter((f) => f.severity !== 'Pass')
+              .filter((f) => f.penalty > 0)
               .map((f) => (
                 <div key={f.id} className="p-4 space-y-2 hover:bg-slate-50">
                   <div className="flex items-start justify-between gap-3">
@@ -334,6 +334,17 @@ export const SecurityAssessment: React.FC<SecurityAssessmentProps> = ({
                   </div>
                 </div>
               ))}
+          </div>
+        )}
+        {scorecard.findings.some((finding) => finding.severity !== 'Pass' && finding.penalty === 0) && (
+          <div className="border-t border-slate-200 bg-slate-50 p-4">
+            <h4 className="text-xs font-bold text-slate-800">Evidence gaps</h4>
+            <p className="mt-1 text-xs text-slate-500">These controls could not be verified from the capture and are not scored as observed vulnerabilities.</p>
+            <ul className="mt-2 space-y-1 text-xs text-slate-600">
+              {scorecard.findings.filter((finding) => finding.severity !== 'Pass' && finding.penalty === 0).map((finding) => (
+                <li key={finding.id}>{finding.parameter}: {finding.remediation}</li>
+              ))}
+            </ul>
           </div>
         )}
       </div>

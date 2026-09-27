@@ -23,13 +23,13 @@ export const SourceBadge = ({ source = 'UNKNOWN' }: { source?: string }) => {
 export const ConfidenceIndicator = ({ value, source = 'Evidence' }: { value: number | null | undefined; source?: string }) => {
   if (value === null || value === undefined) return <span className="text-xs text-slate-500">Confidence: not available</span>;
   const percent = value <= 1 ? Math.round(value * 100) : Math.round(value);
-  const decision = percent >= 80 ? 'Accepted' : percent >= 55 ? 'Limited evidence' : 'Insufficient evidence';
-  return <div className="min-w-32"><div className="flex justify-between text-[11px] text-slate-500"><span>{source}</span><span>{percent}% · {decision}</span></div><div className="mt-1 h-1.5 overflow-hidden rounded bg-slate-200"><div className="h-full rounded bg-blue-600" style={{ width: `${percent}%` }} /></div></div>;
+  const bounded = Math.max(0, Math.min(100, percent));
+  return <div className="min-w-32"><div className="flex justify-between text-[11px] text-slate-500"><span>{source}</span><span>{bounded}%</span></div><div className="mt-1 h-1.5 overflow-hidden rounded bg-slate-200"><div className="h-full rounded bg-blue-600" style={{ width: `${bounded}%` }} /></div></div>;
 };
 
 export const StatusDrawer = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
   if (!open) return null;
-  const rows = [['Browser parser', 'Available', 'Local fallback'], ['Scapy service', 'Optional', '127.0.0.1:8765'], ['Gateway API', 'Optional', '127.0.0.1:8770'], ['ML models', 'Separate API', 'Not used by default upload'], ['Security rules', 'Loaded', 'Browser rule engine'], ['Report engine', 'Available', 'Browser PDF']];
+  const rows = [['Browser parser', 'Available', 'Local fallback'], ['Scapy service', 'Optional', '127.0.0.1:8765'], ['Gateway API', 'Optional', '127.0.0.1:8770'], ['ML models', 'Via Scapy', 'Used when the Scapy service parses an upload'], ['Security rules', 'Loaded', 'Browser rule engine'], ['Report engine', 'Available', 'Browser PDF']];
   return <div className="fixed inset-0 z-50 bg-slate-950/35" role="presentation" onMouseDown={onClose}><aside role="dialog" aria-modal="true" aria-label="System status" onMouseDown={e => e.stopPropagation()} className="animate-drawer absolute right-0 top-0 h-full w-full max-w-md border-l border-slate-200 bg-white p-6 shadow-2xl"><div className="flex items-center justify-between"><div><p className="text-xs font-bold uppercase tracking-widest text-blue-600">System status</p><h2 className="mt-1 text-lg font-bold text-slate-900">Analysis services</h2></div><button onClick={onClose} aria-label="Close status drawer" className="rounded p-2 hover:bg-slate-100"><X className="h-4 w-4" /></button></div><p className="mt-3 text-sm text-slate-500">Statuses describe locally configured subsystems; optional services are not reported as online unless the browser actually reaches them.</p><div className="mt-6 divide-y divide-slate-200 border-y border-slate-200">{rows.map(([name, status, detail]) => <div key={name} className="flex items-center gap-3 py-3"><ServerCog className="h-4 w-4 text-slate-400" /><div className="min-w-0 flex-1"><div className="text-sm font-medium text-slate-800">{name}</div><div className="text-xs text-slate-500">{detail}</div></div><span className="text-xs font-medium text-slate-600">{status}</span></div>)}</div></aside></div>;
 };
 

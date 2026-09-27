@@ -25,7 +25,7 @@ import {
 import { getApiBaseUrl } from '../utils/scapyClient';
 import { AddGatewayModal } from './AddGatewayModal';
 import { GatewayDetailsModal } from './GatewayDetailsModal';
-import { GatewayReportModal } from './GatewayReportModal';
+const GatewayReportModal = React.lazy(() => import('./GatewayReportModal').then(module => ({ default: module.GatewayReportModal })));
 
 interface GatewaysManagerProps {
   onSelectGatewayForAnalysis?: (gatewayId: string) => void;
@@ -399,12 +399,14 @@ export const GatewaysManager: React.FC<GatewaysManagerProps> = ({
         onGatewayRemoved={() => loadGateways()}
       />
 
-      <GatewayReportModal
-        gatewayId={selectedReportId}
-        isOpen={!!selectedReportId}
-        onClose={() => setSelectedReportId(null)}
-        gatewayName={gateways.find((g) => g.gateway_id === selectedReportId)?.display_name}
-      />
+      <React.Suspense fallback={null}>
+        {selectedReportId && <GatewayReportModal
+          gatewayId={selectedReportId}
+          isOpen
+          onClose={() => setSelectedReportId(null)}
+          gatewayName={gateways.find((g) => g.gateway_id === selectedReportId)?.display_name}
+        />}
+      </React.Suspense>
     </div>
   );
 };

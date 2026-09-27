@@ -48,7 +48,7 @@ export const AiTrafficAnalysis: React.FC<AiTrafficAnalysisProps> = ({
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-3">
         <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
         <div className="text-xs text-blue-800 leading-relaxed">
-          <strong>Where AI operates:</strong> For unknown/unseen PCAP captures, trained ML models analyze 18 statistical flow and packet features (length distribution, IKE/ESP byte counts, flow symmetry, entropy) to predict IPsec cryptographic parameters and workload classification without requiring decryption keys.
+          <strong>How inference works:</strong> When the ML service is available, trained models estimate cryptographic parameters from 18 capture features. Workload labels use a separate rule-based ESP shape baseline. Neither method decrypts payloads or confirms application identity.
         </div>
       </div>
 
@@ -149,7 +149,7 @@ export const AiTrafficAnalysis: React.FC<AiTrafficAnalysisProps> = ({
           <div className="p-4 border-b border-slate-200 flex items-center justify-between">
             <div>
               <h3 className="text-sm font-semibold text-slate-900">Workload Traffic Classification</h3>
-              <p className="text-xs text-slate-500">Supervised Random Forest · Softmax normalized</p>
+              <p className="text-xs text-slate-500">ESP shape heuristic · relative scores</p>
             </div>
             <div className="text-right">
               <span className="text-xs font-medium text-slate-500 block">Top prediction</span>
@@ -162,7 +162,7 @@ export const AiTrafficAnalysis: React.FC<AiTrafficAnalysisProps> = ({
               <thead>
                 <tr>
                   <th>Traffic Class</th>
-                  <th>Probability</th>
+                  <th>Relative score</th>
                   <th className="w-40">Distribution</th>
                 </tr>
               </thead>
@@ -191,7 +191,7 @@ export const AiTrafficAnalysis: React.FC<AiTrafficAnalysisProps> = ({
           </div>
 
           <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs">
-            <span className="text-slate-500">Model confidence</span>
+            <span className="text-slate-500">Traffic pattern match</span>
             <span className="font-mono font-bold text-slate-900">{prediction.confidenceScore}%</span>
           </div>
         </div>
@@ -199,8 +199,8 @@ export const AiTrafficAnalysis: React.FC<AiTrafficAnalysisProps> = ({
         {/* Extracted Flow Features */}
         <div className="bg-white border border-slate-200 rounded-lg shadow-xs overflow-hidden">
           <div className="p-4 border-b border-slate-200">
-            <h3 className="text-sm font-semibold text-slate-900">Extracted Flow &amp; Packet Features (18 ML Features)</h3>
-            <p className="text-xs text-slate-500">Statistical shape characteristics fed directly into trained models</p>
+            <h3 className="text-sm font-semibold text-slate-900">Extracted ESP Flow Features</h3>
+            <p className="text-xs text-slate-500">Statistical shape evidence for workload pattern matching</p>
           </div>
 
           <div className="overflow-x-auto">

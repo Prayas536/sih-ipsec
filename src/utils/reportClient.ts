@@ -1,4 +1,4 @@
-import { AiPrediction, SecurityScorecard } from '../types';
+import { AiPrediction, SecurityScorecard, VpnCaptureScenario } from '../types';
 import { getApiBaseUrl } from './scapyClient';
 
 export interface CaptureAiNarrative {
@@ -7,15 +7,42 @@ export interface CaptureAiNarrative {
   narrative: {
     executive_summary: string;
     technical_interpretation: string;
-    recommendation_notes: Array<{ id: string; note: string }>;
+    traffic_interpretation: string;
+    finding_notes: Array<{ id: string; why_it_matters: string }>;
   };
 }
 
-export function buildCaptureAiReportPayload(scorecard: SecurityScorecard, prediction: AiPrediction) {
+export function buildCaptureAiReportPayload(scenario: VpnCaptureScenario, scorecard: SecurityScorecard, prediction: AiPrediction) {
   return {
     // The server allowlists only aggregate score, finding, and flow evidence.
     // No packet bytes, addresses, SPIs, capture names, or user identifiers are sent.
-    scenario: { sa: {}, features: {} },
+    scenario: {
+      sa: {
+        ikeVersion: scenario.sa.ikeVersion,
+        operationalMode: scenario.sa.operationalMode,
+        ipVersion: scenario.sa.ipVersion,
+        encryptionAlgorithm: scenario.sa.encryptionAlgorithm,
+        encryptionKeyBits: scenario.sa.encryptionKeyBits,
+        authIntegrityAlgorithm: scenario.sa.authIntegrityAlgorithm,
+        dhGroup: scenario.sa.dhGroup,
+        dhBits: scenario.sa.dhBits,
+        pfsEnabled: scenario.sa.pfsEnabled,
+        keyLifetimeSeconds: scenario.sa.keyLifetimeSeconds,
+        replayProtection: scenario.sa.replayProtection,
+        replayWindowSize: scenario.sa.replayWindowSize,
+      },
+      features: {
+        packetCount: scenario.features.packetCount,
+        totalBytes: scenario.features.totalBytes,
+        meanPacketLength: scenario.features.meanPacketLength,
+        stdPacketLength: scenario.features.stdPacketLength,
+        meanInterArrivalTimeMs: scenario.features.meanInterArrivalTimeMs,
+        burstRatio: scenario.features.burstRatio,
+        flowSymmetry: scenario.features.flowSymmetry,
+        calculatedEntropy: scenario.features.calculatedEntropy,
+        flowDurationMs: scenario.features.flowDurationMs,
+      },
+    },
     scorecard: {
       totalScore: scorecard.totalScore,
       rating: scorecard.rating,
@@ -32,12 +59,12 @@ export function buildCaptureAiReportPayload(scorecard: SecurityScorecard, predic
   };
 }
 
-export async function generateCaptureAiNarrative(scorecard: SecurityScorecard, prediction: AiPrediction): Promise<CaptureAiNarrative> {
+export async function generateCaptureAiNarrative(scenario: VpnCaptureScenario, scorecard: SecurityScorecard, prediction: AiPrediction): Promise<CaptureAiNarrative> {
   let response: Response;
   try {
     response = await fetch(`${getApiBaseUrl()}/api/reports/pcap-narrative`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(buildCaptureAiReportPayload(scorecard, prediction)),
+      body: JSON.stringify(buildCaptureAiReportPayload(scenario, scorecard, prediction)),
     });
   } catch {
     throw new Error('AI report service is unreachable. Start or restart python server/api_server.py, then try again.');

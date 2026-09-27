@@ -8,17 +8,17 @@ import { Header, AppNavView } from './components/Header';
 import { DashboardView } from './components/DashboardView';
 import { ReportsView } from './components/ReportsView';
 import { MetricCards } from './components/MetricCards';
+import { AssessmentOverview } from './components/AssessmentOverview';
 import { AiTrafficAnalysis } from './components/AiTrafficAnalysis';
 import { SecurityAssessment } from './components/SecurityAssessment';
 import { PacketViewer } from './components/PacketViewer';
-import { ReportModal } from './components/ReportModal';
 import { GatewaysManager } from './components/GatewaysManager';
 import { GatewayDetailsModal } from './components/GatewayDetailsModal';
-import { GatewayReportModal } from './components/GatewayReportModal';
 import { AddGatewayModal } from './components/AddGatewayModal';
 import { CommandPalette, PipelineStepper, StatusDrawer, useThemePreference } from './components/workstation/WorkstationTools';
 import { CaptureProfile } from './components/workstation/CaptureProfile';
 import { fetchGateways } from './utils/gatewayClient';
+import type { AssessmentReportKind } from './utils/assessmentReport';
 import {
   Shield,
   ShieldAlert,
@@ -37,6 +37,8 @@ import {
 
 // The testbed imports synthetic-PCAP code; defer it until the user opens the lab.
 const TestbedGeneratorModal = lazy(() => import('./components/TestbedGeneratorModal').then(module => ({ default: module.TestbedGeneratorModal })));
+const ReportModal = lazy(() => import('./components/ReportModal').then(module => ({ default: module.ReportModal })));
+const GatewayReportModal = lazy(() => import('./components/GatewayReportModal').then(module => ({ default: module.GatewayReportModal })));
 
 export default function App() {
   const { theme, setTheme } = useThemePreference();
@@ -54,6 +56,7 @@ export default function App() {
 
   // Modals
   const [isReportOpen, setIsReportOpen] = useState(false);
+  const [requestedReportKind, setRequestedReportKind] = useState<AssessmentReportKind>('EXECUTIVE');
   const [isTestbedOpen, setIsTestbedOpen] = useState(false);
   const [isAddGatewayOpen, setIsAddGatewayOpen] = useState(false);
   const [selectedDetailGatewayId, setSelectedDetailGatewayId] = useState<string | null>(null);
@@ -77,6 +80,11 @@ export default function App() {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
   }, []);
+
+  const openReport = (kind: AssessmentReportKind = 'EXECUTIVE') => {
+    setRequestedReportKind(kind);
+    setIsReportOpen(true);
+  };
 
   // Fetch gateway count and list for nav badge and Mode 3 selection, auto-refresh every 15 seconds
   const refreshGatewayCount = useCallback(async () => {
@@ -224,7 +232,7 @@ export default function App() {
 
   const handleCommand = (action: string) => {
     if (action === 'analysis') setCurrentView('ANALYSIS');
-    else if (action === 'report' && selectedScenario) setIsReportOpen(true);
+    else if (action === 'report' && selectedScenario) openReport();
     else if (action === 'gateways') setCurrentView('GATEWAYS');
     else if (action === 'testbed') setIsTestbedOpen(true);
     else if (action === 'theme') setTheme(theme === 'dark' ? 'light' : 'dark');
@@ -328,7 +336,7 @@ export default function App() {
           setSelectedScenario(s);
           setCurrentView('ANALYSIS');
         }}
-        onOpenReport={() => setIsReportOpen(true)}
+        onOpenReport={() => openReport()}
         onOpenTestbed={() => setIsTestbedOpen(true)}
         onFileUpload={handleFileUpload}
         onClearTraces={handleClearTraces}
@@ -368,9 +376,9 @@ export default function App() {
           <ReportsView
             scenarios={scenarios}
             gateways={availableGateways}
-            onViewScenarioReport={(s) => {
+            onViewScenarioReport={(s, kind) => {
               setSelectedScenario(s);
-              setIsReportOpen(true);
+              openReport(kind);
             }}
             onViewGatewayReport={(gwId) => {
               setSelectedReportGatewayId(gwId);
@@ -593,7 +601,7 @@ export default function App() {
 
                     <button
                       id="btn-quick-report"
-                      onClick={() => setIsReportOpen(true)}
+                      onClick={() => openReport()}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 transition-colors cursor-pointer shadow-xs"
                     >
                       <FileText className="w-3.5 h-3.5 text-blue-600" />
@@ -609,6 +617,15 @@ export default function App() {
                     scorecard={scorecard}
                     aiPrediction={aiPrediction}
                     actualTrafficType={selectedScenario.actualTrafficType}
+                  />
+                )}
+
+                {scorecard && aiPrediction && (
+                  <AssessmentOverview
+                    scenario={selectedScenario}
+                    scorecard={scorecard}
+                    prediction={aiPrediction}
+                    onOpenReport={() => openReport()}
                   />
                 )}
 
@@ -693,15 +710,18 @@ export default function App() {
       </footer>
 
       {/* Modals */}
-      {selectedScenario && scorecard && aiPrediction && (
-        <ReportModal
-          isOpen={isReportOpen}
-          onClose={() => setIsReportOpen(false)}
-          scenario={selectedScenario}
-          scorecard={scorecard}
-          prediction={aiPrediction}
-        />
-      )}
+      <Suspense fallback={null}>
+        {selectedScenario && scorecard && aiPrediction && (
+          <ReportModal
+            isOpen={isReportOpen}
+            onClose={() => setIsReportOpen(false)}
+            scenario={selectedScenario}
+            scorecard={scorecard}
+            prediction={aiPrediction}
+            initialKind={requestedReportKind}
+          />
+        )}
+      </Suspense>
 
       <Suspense fallback={null}>
         <TestbedGeneratorModal
@@ -720,11 +740,13 @@ export default function App() {
         onGatewayRemoved={refreshGatewayCount}
       />
 
-      <GatewayReportModal
-        isOpen={!!selectedReportGatewayId}
-        onClose={() => setSelectedReportGatewayId(null)}
-        gatewayId={selectedReportGatewayId}
-      />
+      <Suspense fallback={null}>
+        {selectedReportGatewayId && <GatewayReportModal
+          isOpen
+          onClose={() => setSelectedReportGatewayId(null)}
+          gatewayId={selectedReportGatewayId}
+        />}
+      </Suspense>
 
       <AddGatewayModal
         isOpen={isAddGatewayOpen}

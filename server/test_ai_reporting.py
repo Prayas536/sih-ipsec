@@ -54,11 +54,12 @@ class AiReportingTests(unittest.TestCase):
             "scorecard": {
                 "totalScore": 82,
                 "rating": "Secure",
-                "findings": [{"severity": "Medium", "parameter": "PFS", "detectedValue": "Disabled"}],
+                "findings": [{"severity": "Medium", "parameter": "PFS", "detectedValue": "Disabled", "penalty": 15}],
             },
             "prediction": {
                 "predictedClass": "Web",
                 "confidenceScore": 63,
+                "source": "DERIVED_FROM_OBSERVED_DATA",
                 "primaryFeatures": [{"name": "mean packet length", "value": "128"}],
             },
         })
@@ -69,6 +70,9 @@ class AiReportingTests(unittest.TestCase):
         self.assertNotIn("10.0.0.1", serialized)
         self.assertNotIn("0x12345678", serialized)
         self.assertEqual(context["findings"][0]["id"], "F1")
+        self.assertEqual(context["findings"][0]["finding_type"], "OBSERVED_RISK")
+        self.assertEqual(context["traffic_prediction"]["relative_pattern_score_percent"], 63)
+        self.assertIsNone(context["traffic_prediction"]["model_confidence_percent"])
         self.assertEqual(context["traffic_features"]["packetCount"], 9)
 
     def test_pcap_narrative_rejects_notes_for_unknown_findings(self):

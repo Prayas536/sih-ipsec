@@ -25,7 +25,7 @@ import {
   getEnrollCommand,
 } from '../utils/gatewayClient';
 import { getApiBaseUrl } from '../utils/scapyClient';
-import { GatewayReportModal } from './GatewayReportModal';
+const GatewayReportModal = React.lazy(() => import('./GatewayReportModal').then(module => ({ default: module.GatewayReportModal })));
 
 interface GatewayDetailsModalProps {
   gatewayId: string | null;
@@ -521,12 +521,14 @@ export const GatewayDetailsModal: React.FC<GatewayDetailsModalProps> = ({
         </div>
       </div>
 
-      <GatewayReportModal
-        isOpen={isReportOpen}
-        onClose={() => setIsReportOpen(false)}
-        gatewayId={gatewayId}
-        gatewayName={gateway?.display_name}
-      />
+      <React.Suspense fallback={null}>
+        {isReportOpen && <GatewayReportModal
+          isOpen
+          onClose={() => setIsReportOpen(false)}
+          gatewayId={gatewayId}
+          gatewayName={gateway?.display_name}
+        />}
+      </React.Suspense>
     </div>
   );
 };

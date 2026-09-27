@@ -115,8 +115,10 @@ export const MetricCards: React.FC<MetricCardsProps> = ({
             </div>
             <p className="text-xs text-slate-500 mt-1">
               {sa.operationalMode === 'Tunnel Mode'
-                ? 'Full IP datagram encapsulated (Inner headers masked)'
-                : 'Host-to-host transport (Outer IP visible)'}
+                ? 'Full IP datagram encapsulated (inner headers masked)'
+                : sa.operationalMode === 'Transport Mode'
+                  ? 'Host-to-host transport (outer IP visible)'
+                  : 'Tunnel or transport mode cannot be established from this capture.'}
             </p>
           </div>
           <div className="text-[11px] font-mono text-slate-500 pt-2 border-t border-slate-100 flex items-center justify-between">
@@ -167,11 +169,11 @@ export const MetricCards: React.FC<MetricCardsProps> = ({
             </p>
           </div>
           <div className="pt-2 border-t border-slate-100">
-            <ConfidenceIndicator value={aiPrediction.confidenceScore} source="Heuristic probability" />
+            <ConfidenceIndicator value={aiPrediction.status === 'NOT_DETERMINABLE' ? null : aiPrediction.confidenceScore} source="Traffic pattern match" />
           </div>
           <div className="text-[11px] font-mono text-slate-500 pt-2 flex items-center justify-between">
             <span>Payload: <strong>ESP Encrypted</strong></span>
-            <span>{actualTrafficType === 'Live Real Capture' ? 'Capture: <unknown>' : <>Lab context: <strong>{actualTrafficType}</strong></>}</span>
+            <span>{actualTrafficType === 'Live Real Capture' ? 'Application unverified' : <>Lab context: <strong>{actualTrafficType}</strong></>}</span>
           </div>
         </div>
 
