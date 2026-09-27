@@ -45,7 +45,46 @@ export function buildAssessmentSnapshot(
 }
 
 const display = (value: unknown): string => value === null || value === undefined || value === '' ? 'Not observed' : String(value);
-const yesNoUnknown = (value: boolean | null): string => value === null ? 'Not observed' : value ? 'Enabled' : 'Disabled';
+const yesNoUnknown = (value: boolean | null): string => value === null ? 'Not determined from packet evidence' : value ? 'Enabled' : 'Disabled';
+
+const mlTargetName = (target: string): string => ({
+  encryption: 'Encryption cipher',
+  hash: 'Integrity algorithm',
+  dh_group: 'Key exchange group',
+  pfs_group: 'Perfect Forward Secrecy',
+}[target] || target.replaceAll('_', ' '));
+
+const mlClassName = (label: string): string => ({
+  AES128: 'AES-128',
+  AES256: 'AES-256',
+  SHA256: 'SHA-256',
+  SHA384: 'SHA-384',
+  DH14: 'DH Group 14 / MODP-2048',
+  DH15: 'DH Group 15 / MODP-3072',
+  NOPFS: 'No PFS predicted',
+  PFS14: 'PFS predicted with DH Group 14',
+  PFS15: 'PFS predicted with DH Group 15',
+}[label] || label);
+
+function buildMlPredictionSection(scenario: VpnCaptureScenario): ReportSection | null {
+  if (!scenario.mlPredictions) return null;
+  return {
+    title: 'ML cryptographic predictions',
+    lines: [
+      'These values are model predictions from packet/flow features. They are not decoded protocol fields and must be confirmed with visible negotiation evidence, gateway telemetry, or configuration.',
+      'Use this section to guide investigation; do not treat it as compliance proof.',
+    ],
+    table: {
+      headers: ['Target', 'ML prediction', 'Predicted-class probability', 'Evidence status'],
+      rows: Object.entries(scenario.mlPredictions).map(([target, result]) => [
+        mlTargetName(target),
+        mlClassName(result.prediction),
+        result.confidence === null ? 'Unavailable' : `${Math.round(result.confidence * 100)}%`,
+        'ML inference, not packet-observed',
+      ]),
+    },
+  };
+}
 
 export function buildReportSections(
   kind: AssessmentReportKind,
@@ -73,9 +112,9 @@ export function buildReportSections(
     'Application identity and encrypted contents cannot be confirmed from packet metadata.',
   ];
   const confidenceLines = [
-    `AI confidence score: ${snapshot.aiConfidenceScore === null ? 'Unavailable' : `${snapshot.aiConfidenceScore}%`}.`,
+    `Crypto ML confidence score: ${snapshot.aiConfidenceScore === null ? 'Unavailable' : `${snapshot.aiConfidenceScore}%`}.`,
     snapshot.aiConfidenceModels
-      ? `Mean predicted-class probability across ${snapshot.aiConfidenceModels} available cryptographic inference models; this is not measured accuracy.`
+      ? `Mean predicted-class probability across ${snapshot.aiConfidenceModels} available cryptographic inference models. This is not AI narrative confidence, measured accuracy, or probability that the deployment is secure.`
       : 'The trained cryptographic inference service did not return model predictions for this capture.',
   ];
   const threatRows = snapshot.threats.map((finding) => [
@@ -93,13 +132,43 @@ export function buildReportSections(
       ? snapshot.evidenceGaps.map((finding) => `${finding.parameter}: ${finding.detectedValue}. ${finding.remediation}`)
       : ['No unassessed controls were identified in the current rule set.'],
   };
+  const evidenceBasisSection: ReportSection = {
+    title: 'Evidence basis and limits',
+    lines: [
+      'Packet-observed fields come from visible IKE/IP/ESP metadata only.',
+      'Encrypted ESP payload contents are not visible, so application identity and user activity are not confirmed.',
+      'Unknown controls such as PFS, replay window, and SA lifetime remain evidence gaps unless Child-SA negotiation, gateway telemetry, or configuration proves them.',
+      'ML predictions and AI prose are separated from packet-observed findings.',
+    ],
+  };
+  const observedCryptoSection: ReportSection = {
+    title: 'Packet-observed cryptographic evidence',
+    table: { headers: ['Field', 'Packet-observed value', 'Evidence status'], rows: [
+      ['IKE version', display(scenario.sa.ikeVersion), scenario.sa.ikeVersion === 'Not observed in capture' ? 'Not observed' : 'Observed'],
+      ['Operating mode', display(scenario.sa.operationalMode), scenario.sa.operationalMode === 'Not determined from capture' ? 'Not determined' : 'Observed'],
+      ['Encryption', display(scenario.sa.encryptionAlgorithm), scenario.sa.encryptionAlgorithm === 'Not observed in capture' ? 'Not observed' : 'Observed'],
+      ['Integrity', display(scenario.sa.authIntegrityAlgorithm), scenario.sa.authIntegrityAlgorithm === 'Not observed in capture' ? 'Not observed' : 'Observed'],
+      ['DH group', display(scenario.sa.dhGroup), scenario.sa.dhGroup === 'Not observed in capture' ? 'Not observed' : 'Observed'],
+      ['PFS', yesNoUnknown(scenario.sa.pfsEnabled), scenario.sa.pfsEnabled === null ? 'Evidence gap' : 'Observed'],
+      ['Replay protection', yesNoUnknown(scenario.sa.replayProtection), scenario.sa.replayProtection === null ? 'Evidence gap' : 'Observed'],
+      ['Key lifetime', scenario.sa.keyLifetimeSeconds === null ? 'Not observed' : `${scenario.sa.keyLifetimeSeconds} seconds`, scenario.sa.keyLifetimeSeconds === null ? 'Evidence gap' : 'Observed'],
+    ] },
+  };
+  const mlPredictionSection = buildMlPredictionSection(scenario);
+  const aiNarrativeSection: ReportSection = {
+    title: narrative ? 'AI-written narrative (evidence-bound)' : 'Deterministic summary',
+    lines: [narrative?.executive_summary || summary],
+  };
 
   if (kind === 'EXECUTIVE') {
     return [
-      { title: 'Executive summary', lines: [narrative?.executive_summary || summary] },
+      evidenceBasisSection,
       { title: 'Security and risk', lines: scoreLines },
+      observedCryptoSection,
+      ...(mlPredictionSection ? [mlPredictionSection] : []),
       { title: 'Traffic and metadata inference', lines: trafficLines.slice(0, 2).concat(trafficLines[3], trafficLines[4]) },
-      { title: 'AI confidence', lines: confidenceLines },
+      { title: 'Crypto ML confidence', lines: confidenceLines },
+      aiNarrativeSection,
       threatSection,
       gapsSection,
     ];
@@ -107,35 +176,17 @@ export function buildReportSections(
 
   const observations = scenario.sa.observations;
   const sections: ReportSection[] = [
-    { title: 'Technical interpretation', lines: [narrative?.technical_interpretation || summary] },
+    evidenceBasisSection,
+    { title: narrative ? 'AI-written technical interpretation (evidence-bound)' : 'Technical interpretation', lines: [narrative?.technical_interpretation || summary] },
     { title: 'Security and risk', lines: scoreLines },
     threatSection,
     gapsSection,
-    {
-      title: 'Cryptographic parameters',
-      table: { headers: ['Parameter', 'Observed value'], rows: [
-        ['IKE version', display(scenario.sa.ikeVersion)],
-        ['Operating mode', display(scenario.sa.operationalMode)],
-        ['Encryption', display(scenario.sa.encryptionAlgorithm)],
-        ['Integrity', display(scenario.sa.authIntegrityAlgorithm)],
-        ['DH group', display(scenario.sa.dhGroup)],
-        ['PFS', yesNoUnknown(scenario.sa.pfsEnabled)],
-        ['Replay protection', yesNoUnknown(scenario.sa.replayProtection)],
-        ['Key lifetime', scenario.sa.keyLifetimeSeconds === null ? 'Not observed' : `${scenario.sa.keyLifetimeSeconds} seconds`],
-      ] },
-    },
+    observedCryptoSection,
     { title: 'Traffic analysis and metadata inference', lines: trafficLines },
-    { title: 'AI confidence', lines: confidenceLines },
+    { title: 'Crypto ML confidence', lines: confidenceLines },
   ];
 
-  if (scenario.mlPredictions) {
-    sections.push({
-      title: 'Cryptographic model predictions',
-      table: { headers: ['Target', 'Prediction', 'Predicted-class probability'], rows: Object.entries(scenario.mlPredictions).map(([target, result]) => [
-        target.replaceAll('_', ' '), result.prediction, result.confidence === null ? 'Unavailable' : `${Math.round(result.confidence * 100)}%`,
-      ]) },
-    });
-  }
+  if (mlPredictionSection) sections.push(mlPredictionSection);
   if (scenario.mlSecurityFindings?.length) {
     sections.push({
       title: 'Model-inferred security notes',

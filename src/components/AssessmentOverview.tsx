@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, FileText, ShieldAlert, Sparkles } from 'lucide-react';
+import { Activity, Cpu, FileText, ShieldAlert } from 'lucide-react';
 import type { AiPrediction, SecurityScorecard, VpnCaptureScenario } from '../types';
 import { buildAssessmentSnapshot } from '../utils/assessmentReport';
 
@@ -18,7 +18,7 @@ export const AssessmentOverview: React.FC<AssessmentOverviewProps> = ({ scenario
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4">
         <div>
           <h3 className="text-sm font-bold text-slate-900">Automated assessment</h3>
-          <p className="mt-0.5 text-xs text-slate-500">Executive and technical reports are ready from the capture evidence. AI prose is added when the API responds.</p>
+          <p className="mt-0.5 text-xs text-slate-500">Reports separate packet evidence, ML crypto predictions, traffic inference, and optional AI-written prose.</p>
         </div>
         <button onClick={onOpenReport} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700">
           <FileText className="h-4 w-4" /> Open reports
@@ -31,9 +31,9 @@ export const AssessmentOverview: React.FC<AssessmentOverviewProps> = ({ scenario
           <p className="mt-1 text-[11px] text-slate-500">Known configuration penalties; {snapshot.evidenceCoverage}% evidence coverage is tracked separately.</p>
         </div>
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-600"><Sparkles className="h-4 w-4 text-violet-700" /> AI confidence score</div>
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-600"><Cpu className="h-4 w-4 text-violet-700" /> Crypto ML confidence</div>
           <div className="mt-2 text-2xl font-bold text-slate-900">{snapshot.aiConfidenceScore === null ? 'Unavailable' : `${snapshot.aiConfidenceScore}%`}</div>
-          <p className="mt-1 text-[11px] text-slate-500">{snapshot.aiConfidenceModels ? `Mean predicted-class probability across ${snapshot.aiConfidenceModels} trained crypto models; not measured accuracy.` : 'Trained model predictions require the ML analysis service.'}</p>
+          <p className="mt-1 text-[11px] text-slate-500">{snapshot.aiConfidenceModels ? `Mean predicted-class probability across ${snapshot.aiConfidenceModels} trained crypto models; not AI narrative confidence or measured accuracy.` : 'Trained model predictions require the ML analysis service.'}</p>
         </div>
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-600"><Activity className="h-4 w-4 text-blue-600" /> Traffic and metadata inference</div>

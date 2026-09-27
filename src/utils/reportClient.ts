@@ -42,6 +42,8 @@ export function buildCaptureAiReportPayload(scenario: VpnCaptureScenario, scorec
         calculatedEntropy: scenario.features.calculatedEntropy,
         flowDurationMs: scenario.features.flowDurationMs,
       },
+      mlPredictions: scenario.mlPredictions ?? null,
+      mlSecurityFindings: scenario.mlSecurityFindings ?? [],
     },
     scorecard: {
       totalScore: scorecard.totalScore,

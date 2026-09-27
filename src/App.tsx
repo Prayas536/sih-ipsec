@@ -669,6 +669,7 @@ export default function App() {
                       sa={selectedScenario.sa}
                       gatewayTelemetry={selectedScenario.gatewayTelemetry}
                       correlation={selectedScenario.correlation}
+                      mlPredictions={selectedScenario.mlPredictions}
                       mlSecurityFindings={selectedScenario.mlSecurityFindings}
                     />
                   )}

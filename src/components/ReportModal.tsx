@@ -103,6 +103,8 @@ export const ReportModal: React.FC<ReportModalProps> = ({
         sa: scenario.sa,
         features: scenario.features,
         packetCount: scenario.packets.length,
+        mlPredictions: scenario.mlPredictions ?? null,
+        mlSecurityFindings: scenario.mlSecurityFindings ?? [],
         gatewayTelemetry: scenario.gatewayTelemetry ?? null,
         correlation: scenario.correlation ?? null,
       },
@@ -214,9 +216,67 @@ export const ReportModal: React.FC<ReportModalProps> = ({
   };
 
   const generateMarkdownReport = () => formatAssessmentMarkdown(reportType, scenario, reportSections);
+
+  const renderAiNarrativePanel = () => (
+    <section className="rounded-xl border border-violet-200 bg-violet-50/70 p-4">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+        <div className="max-w-3xl">
+          <div className="flex flex-wrap items-center gap-2">
+            <Sparkles className="h-4 w-4 text-violet-700" />
+            <h4 className="text-sm font-bold text-violet-950">AI report narrative</h4>
+            <span className="rounded bg-white px-1.5 py-0.5 text-[10px] font-semibold text-violet-700 ring-1 ring-violet-200">OPTIONAL</span>
+          </div>
+          <p className="mt-1 text-xs leading-relaxed text-violet-950/65">
+            Evidence-bound prose for quick reading. Scores, findings, and packet facts still come from the deterministic analyzer.
+          </p>
+        </div>
+        <button onClick={handleGenerateAiNarrative} disabled={aiLoading} className="w-fit shrink-0 rounded-lg bg-violet-700 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-violet-800 disabled:opacity-60">
+          {aiLoading ? 'Generating...' : aiNarrative ? 'Refresh narrative' : 'Generate narrative'}
+        </button>
+      </div>
+
+      {aiError && <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3"><p className="text-xs font-semibold text-amber-900">AI narrative unavailable</p><p className="mt-1 text-xs leading-relaxed text-amber-900/75">{aiError}</p></div>}
+
+      {aiNarrative ? (
+        <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+          <article className="rounded-lg border border-violet-100 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-2 border-b border-violet-100 pb-2">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-violet-700" />
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-violet-800">Executive summary</p>
+              </div>
+              <span className="rounded bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700">plain language</span>
+            </div>
+            <p className="mt-3 text-sm leading-7 text-stone-700">{aiNarrative.narrative.executive_summary}</p>
+          </article>
+
+          <article className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-2 border-b border-stone-100 pb-2">
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-stone-700">Technical interpretation</p>
+              <span className="rounded bg-stone-50 px-2 py-0.5 text-[10px] font-semibold text-stone-600">packet evidence</span>
+            </div>
+            <p className="mt-3 text-sm leading-7 text-stone-700">{aiNarrative.narrative.technical_interpretation}</p>
+          </article>
+
+          <div className="rounded-lg border border-violet-100 bg-white/80 p-3 text-[11px] text-violet-950/70 xl:col-span-2">
+            <div className="grid gap-2 sm:grid-cols-3">
+              <div><span className="font-bold text-violet-950">Source:</span> {aiNarrative.source}</div>
+              <div><span className="font-bold text-violet-950">Model:</span> {aiNarrative.model}</div>
+              <div><span className="font-bold text-violet-950">Constraint:</span> cannot alter evidence or scoring</div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-4 rounded-lg border border-violet-100 bg-white p-4 text-sm leading-relaxed text-violet-950/65">
+          {aiLoading ? 'Generating readable report text from the current evidence...' : 'AI prose has not been generated yet. The deterministic report sections below are still complete.'}
+        </div>
+      )}
+    </section>
+  );
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/55 p-4 backdrop-blur-sm animate-fade-in">
-      <div className="report-canvas flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-stone-300 shadow-[0_28px_80px_rgba(28,25,23,0.42)]">
+      <div className="report-canvas flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-stone-300 shadow-[0_28px_80px_rgba(28,25,23,0.42)]">
         
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-stone-200 bg-white p-4 sm:p-5">
@@ -296,6 +356,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
                 correlation={scenario.correlation}
                 packetCount={scenario.packets.length}
               />
+              {renderAiNarrativePanel()}
             </div>
           ) : reportType === 'EXECUTIVE' ? (
             /* Executive Report View */
@@ -330,7 +391,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
                     <div className="mt-5 grid gap-2 sm:grid-cols-4">
                       <div className="rounded-lg border border-stone-200 bg-stone-50 p-3"><p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Evidence coverage</p><p className="mt-1 text-base font-bold text-stone-900">{scorecard.evidenceCoveragePercent}%</p><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-stone-200"><div className="h-full rounded-full bg-teal-600" style={{ width: `${scorecard.evidenceCoveragePercent}%` }} /></div></div>
                       <div className="rounded-lg border border-stone-200 bg-stone-50 p-3"><p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Risk score</p><p className="mt-1 text-base font-bold text-stone-900">{snapshot.riskScore === null ? 'Not rated' : `${snapshot.riskScore}/100`}</p><p className="mt-1 text-[10px] text-stone-500">Observed penalties</p></div>
-                      <div className="rounded-lg border border-stone-200 bg-stone-50 p-3"><p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">AI confidence</p><p className="mt-1 text-base font-bold text-stone-900">{snapshot.aiConfidenceScore === null ? 'Unavailable' : `${snapshot.aiConfidenceScore}%`}</p><p className="mt-1 text-[10px] text-stone-500">{snapshot.aiConfidenceModels} crypto models</p></div>
+                      <div className="rounded-lg border border-stone-200 bg-stone-50 p-3"><p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Crypto ML confidence</p><p className="mt-1 text-base font-bold text-stone-900">{snapshot.aiConfidenceScore === null ? 'Unavailable' : `${snapshot.aiConfidenceScore}%`}</p><p className="mt-1 text-[10px] text-stone-500">mean across {snapshot.aiConfidenceModels} crypto models</p></div>
                       <div className="rounded-lg border border-stone-200 bg-stone-50 p-3"><p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Packet evidence</p><p className="mt-1 text-base font-bold text-stone-900">{scenario.packets.length} packets</p><p className="mt-1 text-[10px] text-stone-500">{scenario.sa.ikeVersion} · {scenario.sa.operationalMode}</p></div>
                     </div>
                   </div>
@@ -349,11 +410,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
                 </aside>
               </div>
 
-              <div className="rounded-xl border border-violet-200 bg-violet-50/70 p-4">
-                <div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-violet-700" /><h4 className="text-sm font-bold text-violet-950">AI report narrative</h4><span className="rounded bg-white px-1.5 py-0.5 text-[10px] font-semibold text-violet-700 ring-1 ring-violet-200">OPTIONAL</span></div><p className="mt-1 text-xs text-violet-950/65">Creates readable executive and technical prose from the report evidence. It cannot change the score, findings, or packet evidence.</p></div><button onClick={handleGenerateAiNarrative} disabled={aiLoading} className="shrink-0 rounded-lg bg-violet-700 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-violet-800 disabled:opacity-60">{aiLoading ? 'Generating…' : aiNarrative ? 'Refresh narrative' : 'Generate narrative'}</button></div>
-                {aiError && <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3"><p className="text-xs font-semibold text-amber-900">AI narrative unavailable</p><p className="mt-1 text-xs leading-relaxed text-amber-900/75">{aiError}</p></div>}
-                {aiNarrative && <div className="mt-3 space-y-2 border-t border-violet-200 pt-3"><p className="text-xs font-semibold text-violet-900">Generated by {aiNarrative.source} · {aiNarrative.model}</p><p className="text-sm leading-relaxed text-stone-700">{aiNarrative.narrative.executive_summary}</p><details className="rounded-lg bg-white p-3 text-xs text-stone-600 ring-1 ring-violet-100"><summary className="cursor-pointer font-semibold text-stone-800">Technical interpretation</summary><p className="mt-2 leading-relaxed">{aiNarrative.narrative.technical_interpretation}</p></details></div>}
-              </div>
+              {renderAiNarrativePanel()}
 
               {/* Executive Recommendations List */}
               <div className="space-y-3">
@@ -390,7 +447,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
             </div>
           ) : (
             /* Technical Report View */
-            <div className="space-y-6 font-mono text-xs text-stone-700">
+            <div className="space-y-6 text-xs text-stone-700">
               
               <div className="space-y-2 rounded-xl border border-teal-900 bg-[#163733] p-4 text-teal-50 shadow-[0_8px_18px_rgba(19,78,74,0.16)]">
                 <div className="font-bold text-teal-300">[PROTOCOL AUDIT RECORD]</div>
@@ -403,14 +460,11 @@ export const ReportModal: React.FC<ReportModalProps> = ({
 
               <div className="grid gap-2 sm:grid-cols-3">
                 <div className="rounded-lg border border-stone-200 bg-white p-3"><div className="text-stone-500">Security / observed risk</div><div className="mt-1 font-bold text-stone-900">{scorecard.totalScore}/100 · {snapshot.riskScore === null ? 'Not rated' : `${snapshot.riskScore}/100`}</div><div className="text-stone-500">Evidence coverage {scorecard.evidenceCoveragePercent}%</div></div>
-                <div className="rounded-lg border border-stone-200 bg-white p-3"><div className="text-stone-500">AI confidence score</div><div className="mt-1 font-bold text-stone-900">{snapshot.aiConfidenceScore === null ? 'Unavailable' : `${snapshot.aiConfidenceScore}%`}</div><div className="text-stone-500">Mean across {snapshot.aiConfidenceModels} trained crypto models</div></div>
+                <div className="rounded-lg border border-stone-200 bg-white p-3"><div className="text-stone-500">Crypto ML confidence</div><div className="mt-1 font-bold text-stone-900">{snapshot.aiConfidenceScore === null ? 'Unavailable' : `${snapshot.aiConfidenceScore}%`}</div><div className="text-stone-500">Mean predicted-class probability across {snapshot.aiConfidenceModels} trained crypto models</div></div>
                 <div className="rounded-lg border border-stone-200 bg-white p-3"><div className="text-stone-500">Metadata inference</div><div className="mt-1 font-bold text-stone-900">{prediction.predictedClass}</div><div className="text-stone-500">{snapshot.trafficMatchScore === null ? 'Insufficient ESP evidence' : `${snapshot.trafficMatchScore}% relative pattern match`}</div></div>
               </div>
 
-              <div className="rounded-lg border border-violet-200 bg-violet-50 p-3">
-                <div className="font-bold text-violet-950">AI technical interpretation</div>
-                <p className="mt-1 text-violet-950/65">{aiLoading ? 'Generating from the report evidence…' : aiNarrative?.narrative.technical_interpretation || 'The deterministic technical report is ready. External AI prose is unavailable or still pending.'}</p>
-              </div>
+              {renderAiNarrativePanel()}
 
               {/* Technical Specifications */}
               <div>
