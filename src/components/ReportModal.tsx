@@ -10,7 +10,9 @@ import {
   FileText,
   FileJson,
   Wifi,
+  Sparkles,
 } from 'lucide-react';
+import { CaptureAiNarrative, generateCaptureAiNarrative } from '../utils/reportClient';
 import { AiPrediction, IkeSecurityAssociation, SecurityScorecard, VpnCaptureScenario } from '../types';
 import { CombinedAnalysisPanel } from './CombinedAnalysisPanel';
 import jsPDF from 'jspdf';
@@ -33,8 +35,18 @@ export const ReportModal: React.FC<ReportModalProps> = ({
 }) => {
   const [reportType, setReportType] = useState<'EXECUTIVE' | 'TECHNICAL' | 'COMBINED'>('EXECUTIVE');
   const [copied, setCopied] = useState(false);
+  const [aiNarrative, setAiNarrative] = useState<CaptureAiNarrative | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   if (!isOpen) return null;
+
+  const handleGenerateAiNarrative = async () => {
+    setAiLoading(true); setAiError(null);
+    try { setAiNarrative(await generateCaptureAiNarrative(scorecard, prediction)); }
+    catch (error) { setAiError(error instanceof Error ? error.message : 'AI narrative generation failed.'); }
+    finally { setAiLoading(false); }
+  };
 
   const handleCopyMarkdown = () => {
     const content = generateMarkdownReport();
@@ -71,6 +83,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
       },
       scorecard,
       prediction,
+      aiNarrative,
     };
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -155,6 +168,10 @@ export const ReportModal: React.FC<ReportModalProps> = ({
     };
     scoreBar('Evidence-adjusted score', scorecard.totalScore, [25, 132, 105]);
     scoreBar('Evidence coverage', scorecard.evidenceCoveragePercent, [42, 115, 165]);
+
+    section('AI-Assisted Narrative');
+    paragraph(aiNarrative?.narrative.executive_summary ?? 'Not generated. The report remains evidence-based and can be exported without an external AI narrative.');
+    if (aiNarrative?.narrative.technical_interpretation) paragraph(aiNarrative.narrative.technical_interpretation);
 
     section('Observed Security Findings');
     table(['Severity', 'Parameter', 'Detected', 'Recommendation'], scorecard.findings.map((finding) => [
@@ -253,6 +270,11 @@ export const ReportModal: React.FC<ReportModalProps> = ({
 - **AI Model Confidence:** ${prediction.confidenceScore}%
 - **Entropy:** ${scenario.features.calculatedEntropy} / 8.00 bits (Verified encrypted payload)
 
+## 2A. AI-Assisted Report Narrative
+${aiNarrative ? `- **Provider:** ${aiNarrative.source} (${aiNarrative.model})
+- **Executive Narrative:** ${aiNarrative.narrative.executive_summary}
+- **Technical Interpretation:** ${aiNarrative.narrative.technical_interpretation}` : 'Not generated. This deterministic report contains packet evidence, rule-engine findings, and traffic inference without external AI prose.'}
+
 ---
 
 ## 3. Cryptographic Parameters
@@ -283,35 +305,36 @@ ${scorecard.findings
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/55 p-4 backdrop-blur-sm animate-fade-in">
+      <div className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-stone-300 bg-[#f7f5f0] shadow-[0_28px_80px_rgba(28,25,23,0.42)]">
         
         {/* Modal Header */}
-        <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/90">
+        <div className="flex items-center justify-between border-b border-stone-200 bg-[#fffdf8] p-4 sm:p-5">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-700 text-white shadow-md shadow-teal-900/20">
               <FileText className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white">
-                Automated Security Assessment Report
-              </h2>
-              <p className="text-xs text-slate-400">
-                Official NTRO Protocol Analyzer Security Verification Document
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-bold text-stone-900">Security assessment report</h2>
+                <span className="rounded border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-amber-800">EVIDENCE-BOUND</span>
+              </div>
+              <p className="text-xs text-stone-500">
+                Packet evidence, rule-engine findings, and optional AI narrative
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             {/* View Switcher */}
-            <div className="inline-flex rounded-lg bg-slate-800 p-0.5 border border-slate-700">
+            <div className="inline-flex rounded-lg border border-stone-300 bg-stone-100 p-0.5">
               <button
                 id="btn-report-exec"
                 onClick={() => setReportType('EXECUTIVE')}
                 className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
                   reportType === 'EXECUTIVE'
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-stone-900 text-white shadow-sm'
+                    : 'text-stone-500 hover:bg-white hover:text-stone-900'
                 }`}
               >
                 Executive
@@ -321,8 +344,8 @@ ${scorecard.findings
                 onClick={() => setReportType('TECHNICAL')}
                 className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
                   reportType === 'TECHNICAL'
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-stone-900 text-white shadow-sm'
+                    : 'text-stone-500 hover:bg-white hover:text-stone-900'
                 }`}
               >
                 Technical
@@ -333,8 +356,8 @@ ${scorecard.findings
                   onClick={() => setReportType('COMBINED')}
                   className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer flex items-center gap-1 ${
                     reportType === 'COMBINED'
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : 'text-slate-400 hover:text-white'
+                      ? 'bg-stone-900 text-white shadow-sm'
+                      : 'text-stone-500 hover:bg-white hover:text-stone-900'
                   }`}
                 >
                   <Wifi className="w-3 h-3" />
@@ -345,7 +368,7 @@ ${scorecard.findings
 
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer ml-2"
+              className="ml-2 flex h-8 w-8 items-center justify-center rounded-lg bg-stone-100 text-stone-500 transition-colors hover:bg-stone-200 hover:text-stone-900 cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -353,7 +376,7 @@ ${scorecard.findings
         </div>
 
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 text-slate-300 text-xs">
+        <div className="flex-1 space-y-6 overflow-y-auto bg-[#f7f5f0] p-6 text-xs text-stone-700">
           {reportType === 'COMBINED' && scenario.gatewayTelemetry ? (
             /* Mode 3 Combined Analysis View */
             <div className="space-y-6">
@@ -368,80 +391,80 @@ ${scorecard.findings
             /* Executive Report View */
             <div className="space-y-6">
               
-              {/* Executive Banner */}
-              <div className="p-5 rounded-xl bg-slate-800/60 border border-slate-700/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                  <span className="text-[11px] font-bold text-blue-400 uppercase tracking-wider">
-                    Executive Threat &amp; Compliance Verdict
-                  </span>
-                  <h3 className="text-lg font-bold text-white mt-0.5">
-                    {scenario.name}
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Deployment Context: {scenario.description}
-                  </p>
-                </div>
-
-                <div className="text-right shrink-0">
-                  <div className="text-2xl font-black text-white">
-                    {scorecard.totalScore} <span className="text-sm font-normal text-slate-400">/ 100</span>
+              {/* Executive assessment brief */}
+              <section className="overflow-hidden rounded-2xl border border-stone-300 bg-white shadow-[0_12px_30px_rgba(68,64,60,0.08)]">
+                <div className="grid lg:grid-cols-[205px_1fr]">
+                  <div className="flex flex-col items-center justify-center border-b border-teal-950/30 bg-[#163733] p-5 lg:border-b-0 lg:border-r">
+                    <div
+                      className="grid h-28 w-28 place-items-center rounded-full p-2"
+                      style={{ background: `conic-gradient(${scorecard.rating === 'Not Rated' ? '#a8a29e' : scorecard.totalScore >= 70 ? '#5eead4' : '#fbbf24'} ${scorecard.totalScore}%, #315650 0)` }}
+                    >
+                      <div className="grid h-full w-full place-items-center rounded-full bg-[#0d2521] text-center">
+                        <div><div className="text-3xl font-black leading-none text-white">{scorecard.totalScore}</div><div className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-teal-100/55">risk score / 100</div></div>
+                      </div>
+                    </div>
+                    <span className={`mt-3 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${scorecard.rating === 'Not Rated' ? 'border-stone-500 bg-stone-700 text-stone-100' : scorecard.totalScore >= 70 ? 'border-teal-300 bg-teal-100 text-teal-900' : 'border-amber-300 bg-amber-100 text-amber-950'}`}>
+                      {scorecard.rating} posture
+                    </span>
                   </div>
-                  <span className={`inline-block px-2.5 py-0.5 rounded text-xs font-bold uppercase mt-1 ${
-                    scorecard.rating === 'Not Rated'
-                      ? 'bg-slate-800 text-slate-300 border border-slate-700'
-                      : scorecard.totalScore >= 70 ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-rose-950 text-rose-300 border border-rose-800'
-                  }`}>
-                    {scorecard.rating} Posture
-                  </span>
-                  <div className="text-[11px] text-slate-400 mt-1">{scorecard.evidenceCoveragePercent}% evidence coverage · {scorecard.assessmentStatus}</div>
+
+                  <div className="p-5">
+                    <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-teal-700">Executive assessment brief</p>
+                        <h3 className="mt-1 text-xl font-bold text-stone-900">{scenario.name}</h3>
+                        <p className="mt-1 max-w-2xl text-xs leading-relaxed text-stone-500">{scenario.description}</p>
+                      </div>
+                      <span className="w-fit rounded-md border border-stone-300 bg-stone-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-stone-700">{scorecard.assessmentStatus}</span>
+                    </div>
+                    <div className="mt-5 grid gap-2 sm:grid-cols-3">
+                      <div className="rounded-lg border border-stone-200 bg-stone-50 p-3"><p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Evidence coverage</p><p className="mt-1 text-base font-bold text-stone-900">{scorecard.evidenceCoveragePercent}%</p><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-stone-200"><div className="h-full rounded-full bg-teal-600" style={{ width: `${scorecard.evidenceCoveragePercent}%` }} /></div></div>
+                      <div className="rounded-lg border border-stone-200 bg-stone-50 p-3"><p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Observed findings</p><p className="mt-1 text-base font-bold text-stone-900">{scorecard.findings.filter((f) => f.severity !== 'Pass').length}</p><p className="mt-1 text-[10px] text-stone-500">Rule-engine assessment</p></div>
+                      <div className="rounded-lg border border-stone-200 bg-stone-50 p-3"><p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Packet evidence</p><p className="mt-1 text-base font-bold text-stone-900">{scenario.packets.length} packets</p><p className="mt-1 text-[10px] text-stone-500">{scenario.sa.ikeVersion} · {scenario.sa.operationalMode}</p></div>
+                    </div>
+                  </div>
                 </div>
+              </section>
+
+              <div className="grid gap-3 lg:grid-cols-[1.35fr_0.65fr]">
+                <section className="rounded-xl border border-stone-200 bg-white p-4">
+                  <h4 className="flex items-center gap-2 text-sm font-bold text-stone-900"><ShieldCheck className="h-4 w-4 text-teal-600" /> Analyst reading</h4>
+                  <p className="mt-2 leading-relaxed text-stone-600">This IPsec capture is assessed for <strong className="text-stone-900">{scenario.organization}</strong>. The score reflects observed configuration evidence only: {scorecard.assessmentStatus !== 'COMPLETE' ? 'the assessment remains partial, so unobserved controls are neither presumed secure nor reported as vulnerabilities.' : scorecard.findings.some((finding) => finding.severity === 'Critical' || finding.severity === 'High') ? 'high-risk configuration findings require review before this deployment is trusted.' : 'no high-risk finding was identified in the assessed fields.'}</p>
+                </section>
+                <aside className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-amber-800">Traffic inference</p>
+                  <p className="mt-2 text-sm font-bold text-stone-900">{prediction.predictedClass} <span className="text-xs font-medium text-amber-800">· {prediction.confidenceScore}% confidence</span></p>
+                  <p className="mt-2 leading-relaxed text-amber-950/75">Estimated from packet size and timing. ESP payloads remain encrypted; this is not decrypted content or confirmed ground truth.</p>
+                </aside>
               </div>
 
-              {/* High-Level Narrative */}
-              <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
-                <h4 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  Tactical Risk Assessment Summary
-                </h4>
-                <div className="text-slate-300 leading-relaxed space-y-2">
-                  <p>
-                    This IPsec network capture represents encrypted communications under the jurisdiction of{' '}
-                    <strong>{scenario.organization}</strong>. Its evidence-adjusted score is{' '}
-                    <strong className="text-white">{scorecard.totalScore}/100</strong> with{' '}
-                    <strong className="text-white">{scorecard.evidenceCoveragePercent}% evidence coverage</strong>.{' '}
-                    {scorecard.assessmentStatus !== 'COMPLETE'
-                      ? 'This is a partial assessment; unobserved controls are not treated as secure or as confirmed vulnerabilities.'
-                      : scorecard.findings.some((finding) => finding.severity === 'Critical' || finding.severity === 'High')
-                      ? 'The observed configuration includes high-risk findings that require review.'
-                      : 'No high-risk finding was identified in the assessed fields.'}
-                  </p>
-                  <p>
-                    <strong>AI Inferred Workload:</strong> Even though raw payloads are unreadable due to ESP encapsulation, machine learning models determined with <strong>{prediction.confidenceScore}% confidence</strong> that this tunnel is transmitting <strong>{prediction.predictedClass}</strong> based on statistical framing characteristics.
-                  </p>
-                </div>
+              <div className="rounded-xl border border-violet-200 bg-violet-50/70 p-4">
+                <div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-violet-700" /><h4 className="text-sm font-bold text-violet-950">AI report narrative</h4><span className="rounded bg-white px-1.5 py-0.5 text-[10px] font-semibold text-violet-700 ring-1 ring-violet-200">OPTIONAL</span></div><p className="mt-1 text-xs text-violet-950/65">Creates readable executive and technical prose from the report evidence. It cannot change the score, findings, or packet evidence.</p></div><button onClick={handleGenerateAiNarrative} disabled={aiLoading} className="shrink-0 rounded-lg bg-violet-700 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-violet-800 disabled:opacity-60">{aiLoading ? 'Generating…' : aiNarrative ? 'Refresh narrative' : 'Generate narrative'}</button></div>
+                {aiError && <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3"><p className="text-xs font-semibold text-amber-900">AI narrative unavailable</p><p className="mt-1 text-xs leading-relaxed text-amber-900/75">{aiError}</p></div>}
+                {aiNarrative && <div className="mt-3 space-y-2 border-t border-violet-200 pt-3"><p className="text-xs font-semibold text-violet-900">Generated by {aiNarrative.source} · {aiNarrative.model}</p><p className="text-sm leading-relaxed text-stone-700">{aiNarrative.narrative.executive_summary}</p><details className="rounded-lg bg-white p-3 text-xs text-stone-600 ring-1 ring-violet-100"><summary className="cursor-pointer font-semibold text-stone-800">Technical interpretation</summary><p className="mt-2 leading-relaxed">{aiNarrative.narrative.technical_interpretation}</p></details></div>}
               </div>
 
               {/* Executive Recommendations List */}
               <div className="space-y-3">
-                <h4 className="text-sm font-bold text-white uppercase tracking-wider">
+                <h4 className="text-sm font-bold uppercase tracking-wider text-stone-900">
                   Prioritized Action Items
                 </h4>
                 <div className="space-y-2">
                   {scorecard.findings
                     .filter((f) => f.severity !== 'Pass')
                     .map((f, i) => (
-                      <div key={i} className="p-3 rounded-lg bg-slate-800/40 border border-slate-800 flex items-start gap-3">
-                        <span className="w-5 h-5 rounded-full bg-rose-950 text-rose-400 border border-rose-800 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">
+                      <div key={i} className="flex items-start gap-3 rounded-lg border border-stone-200 bg-white p-3 shadow-[0_2px_8px_rgba(68,64,60,0.04)]">
+                        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-amber-300 bg-amber-100 text-[10px] font-bold text-amber-900">
                           {i + 1}
                         </span>
                         <div>
-                          <div className="font-bold text-white">{f.threatName}</div>
-                          <div className="text-slate-400 mt-0.5">{f.remediation}</div>
+                          <div className="font-bold text-stone-900">{f.threatName}</div>
+                          <div className="mt-0.5 text-stone-500">{f.remediation}</div>
                         </div>
                       </div>
                     ))}
                   {scorecard.findings.filter((f) => f.severity !== 'Pass').length === 0 && (
-                    <div className="text-emerald-400 font-semibold p-3 bg-emerald-950/30 rounded-lg border border-emerald-900">
+                    <div className="rounded-lg border border-teal-200 bg-teal-50 p-3 font-semibold text-teal-800">
                       ✓ No immediate executive interventions required. Deployment meets defense standard requirements.
                     </div>
                   )}
@@ -451,10 +474,10 @@ ${scorecard.findings
             </div>
           ) : (
             /* Technical Report View */
-            <div className="space-y-6 font-mono text-xs">
+            <div className="space-y-6 font-mono text-xs text-stone-700">
               
-              <div className="p-4 rounded-lg bg-slate-950 border border-slate-800 space-y-2">
-                <div className="text-emerald-400 font-bold">[PROTOCOL AUDIT RECORD]</div>
+              <div className="space-y-2 rounded-xl border border-teal-900 bg-[#163733] p-4 text-teal-50 shadow-[0_8px_18px_rgba(19,78,74,0.16)]">
+                <div className="font-bold text-teal-300">[PROTOCOL AUDIT RECORD]</div>
                 <div>Target Gateway: {scenario.packets[0]?.destIp || '10.0.0.1'}</div>
                 <div>Initiator SPI: {scenario.sa.initiatorSpi}</div>
                 <div>Responder SPI: {scenario.sa.responderSpi}</div>
@@ -464,25 +487,25 @@ ${scorecard.findings
 
               {/* Technical Specifications */}
               <div>
-                <h4 className="font-bold text-white mb-2 font-sans">
+                <h4 className="mb-2 font-sans font-bold text-stone-900">
                   Negotiated Security Association Transforms
                 </h4>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  <div className="p-2.5 rounded bg-slate-800/60 border border-slate-700">
-                    <div className="text-[10px] text-slate-400">IKE Version</div>
-                    <div className="font-bold text-white mt-1">{scenario.sa.ikeVersion}</div>
+                  <div className="rounded-lg border border-stone-200 bg-white p-2.5">
+                    <div className="text-[10px] text-stone-500">IKE Version</div>
+                    <div className="mt-1 font-bold text-stone-900">{scenario.sa.ikeVersion}</div>
                   </div>
-                  <div className="p-2.5 rounded bg-slate-800/60 border border-slate-700">
-                    <div className="text-[10px] text-slate-400">Cipher</div>
-                    <div className="font-bold text-white mt-1 truncate">{scenario.sa.encryptionAlgorithm}</div>
+                  <div className="rounded-lg border border-stone-200 bg-white p-2.5">
+                    <div className="text-[10px] text-stone-500">Cipher</div>
+                    <div className="mt-1 truncate font-bold text-stone-900">{scenario.sa.encryptionAlgorithm}</div>
                   </div>
-                  <div className="p-2.5 rounded bg-slate-800/60 border border-slate-700">
-                    <div className="text-[10px] text-slate-400">DH Group</div>
-                    <div className="font-bold text-white mt-1">{scenario.sa.dhGroup}</div>
+                  <div className="rounded-lg border border-stone-200 bg-white p-2.5">
+                    <div className="text-[10px] text-stone-500">DH Group</div>
+                    <div className="mt-1 font-bold text-stone-900">{scenario.sa.dhGroup}</div>
                   </div>
-                  <div className="p-2.5 rounded bg-slate-800/60 border border-slate-700">
-                    <div className="text-[10px] text-slate-400">PFS Status</div>
-                    <div className="font-bold text-white mt-1">
+                  <div className="rounded-lg border border-stone-200 bg-white p-2.5">
+                    <div className="text-[10px] text-stone-500">PFS Status</div>
+                    <div className="mt-1 font-bold text-stone-900">
                       {scenario.sa.pfsEnabled === null ? 'Not observed' : scenario.sa.pfsEnabled ? 'Enabled' : 'Disabled'}
                     </div>
                   </div>
@@ -491,10 +514,10 @@ ${scorecard.findings
 
               {/* Raw Findings Data Table */}
               <div>
-                <h4 className="font-bold text-white mb-2 font-sans">Audit Finding Details</h4>
-                <div className="border border-slate-800 rounded-lg overflow-hidden">
+                <h4 className="mb-2 font-sans font-bold text-stone-900">Audit Finding Details</h4>
+                <div className="overflow-hidden rounded-lg border border-stone-200 bg-white">
                   <table className="w-full text-left">
-                    <thead className="bg-slate-800/80 text-[10px] uppercase text-slate-400 border-b border-slate-700">
+                    <thead className="border-b border-stone-200 bg-stone-100 text-[10px] uppercase text-stone-500">
                       <tr>
                         <th className="p-2.5">Parameter</th>
                         <th className="p-2.5">Detected Value</th>
@@ -502,19 +525,19 @@ ${scorecard.findings
                         <th className="p-2.5">Identified Vulnerability</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800">
+                    <tbody className="divide-y divide-stone-100">
                       {scorecard.findings.map((f, i) => (
-                        <tr key={i} className="hover:bg-slate-800/30">
-                          <td className="p-2.5 font-bold text-slate-200">{f.parameter}</td>
-                          <td className="p-2.5 text-slate-300">{f.detectedValue}</td>
+                        <tr key={i} className="hover:bg-amber-50/50">
+                          <td className="p-2.5 font-bold text-stone-800">{f.parameter}</td>
+                          <td className="p-2.5 text-stone-700">{f.detectedValue}</td>
                           <td className="p-2.5">
                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                              f.severity === 'Critical' ? 'bg-rose-950 text-rose-300' : (f.severity === 'Pass' ? 'bg-emerald-950 text-emerald-300' : 'bg-amber-950 text-amber-300')
+                              f.severity === 'Critical' ? 'bg-rose-100 text-rose-800' : (f.severity === 'Pass' ? 'bg-teal-100 text-teal-800' : 'bg-amber-100 text-amber-900')
                             }`}>
                               {f.severity}
                             </span>
                           </td>
-                          <td className="p-2.5 text-slate-400">{f.threatName}</td>
+                          <td className="p-2.5 text-stone-500">{f.threatName}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -528,43 +551,44 @@ ${scorecard.findings
         </div>
 
         {/* Modal Footer Controls */}
-        <div className="p-4 border-t border-slate-800 bg-slate-900/90 flex flex-wrap items-center justify-between gap-3">
-          <div className="text-xs text-slate-400">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-stone-200 bg-[#fffdf8] p-4">
+          <div className="text-xs text-stone-500">
             Exportable report format conforming to NTRO Deliverable E.
           </div>
 
           <div className="flex items-center gap-2">
+            <button onClick={handleGenerateAiNarrative} disabled={aiLoading} className="inline-flex items-center gap-1.5 rounded-lg bg-violet-700 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-violet-800 disabled:opacity-60 cursor-pointer"><Sparkles className="w-3.5 h-3.5" /><span>{aiLoading ? 'Generating AI…' : 'AI Narrative'}</span></button>
             <button
               id="btn-download-json"
               onClick={handleDownloadJson}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-xs font-semibold text-stone-700 transition-colors hover:bg-stone-100 cursor-pointer"
             >
-              <FileJson className="w-3.5 h-3.5 text-amber-400" />
+              <FileJson className="w-3.5 h-3.5 text-amber-600" />
               <span>Export JSON</span>
             </button>
 
             <button
               id="btn-download-pdf"
               onClick={handleDownloadPdf}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-xs font-semibold text-stone-700 transition-colors hover:bg-stone-100 cursor-pointer"
             >
-              <FileDown className="w-3.5 h-3.5 text-cyan-300" />
+              <FileDown className="w-3.5 h-3.5 text-teal-600" />
               <span>Download PDF</span>
             </button>
 
             <button
               id="btn-copy-report"
               onClick={handleCopyMarkdown}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-xs font-semibold text-stone-700 transition-colors hover:bg-stone-100 cursor-pointer"
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              {copied ? <Check className="w-3.5 h-3.5 text-teal-600" /> : <Copy className="w-3.5 h-3.5" />}
               <span>{copied ? 'Copied Markdown!' : 'Copy Markdown'}</span>
             </button>
 
             <button
               id="btn-download-report"
               onClick={handleDownloadMarkdown}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-500 text-white shadow-sm shadow-blue-500/20 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-teal-700 px-3 py-1.5 text-xs font-semibold text-white shadow-sm shadow-teal-900/20 transition-colors hover:bg-teal-800 cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Download .MD Report</span>

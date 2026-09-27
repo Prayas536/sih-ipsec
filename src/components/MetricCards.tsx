@@ -1,6 +1,7 @@
 import React from 'react';
 import { ShieldCheck, ShieldAlert, ShieldX } from 'lucide-react';
 import { AiPrediction, IkeSecurityAssociation, SecurityScorecard } from '../types';
+import { ConfidenceIndicator, SourceBadge } from './workstation/WorkstationTools';
 
 interface MetricCardsProps {
   sa: IkeSecurityAssociation;
@@ -68,6 +69,7 @@ export const MetricCards: React.FC<MetricCardsProps> = ({
               <span className="text-sm font-medium text-slate-400">/ 100</span>
             </div>
             <div className="mt-2 flex items-center gap-1.5 flex-wrap text-[11px]">
+              <SourceBadge source="RULE_ENGINE" />
               <span className={`px-1.5 py-0.2 rounded font-mono border ${scorecard.assessmentStatus === 'COMPLETE' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
                 Evidence: {scorecard.evidenceCoveragePercent}% ({scorecard.assessmentStatus.toLowerCase()})
               </span>
@@ -134,6 +136,7 @@ export const MetricCards: React.FC<MetricCardsProps> = ({
             </span>
           </div>
           <div>
+            <SourceBadge source={sa.fieldEvidence?.encryptionAlgorithm?.source || 'PCAP_OBSERVED'} />
             <div className="text-sm font-bold text-slate-900 font-mono truncate" title={sa.encryptionAlgorithm}>
               {sa.encryptionAlgorithm}
             </div>
@@ -153,9 +156,7 @@ export const MetricCards: React.FC<MetricCardsProps> = ({
             <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
               Inferred Workload
             </span>
-            <span className="text-[11px] font-mono font-medium text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
-              {aiPrediction.confidenceScore}% confidence
-            </span>
+            <SourceBadge source={aiPrediction.source || 'UNKNOWN'} />
           </div>
           <div>
             <div className="text-base font-bold text-slate-900">
@@ -165,9 +166,12 @@ export const MetricCards: React.FC<MetricCardsProps> = ({
               Classified from encrypted frame length &amp; burst cadence
             </p>
           </div>
-          <div className="text-[11px] font-mono text-slate-500 pt-2 border-t border-slate-100 flex items-center justify-between">
+          <div className="pt-2 border-t border-slate-100">
+            <ConfidenceIndicator value={aiPrediction.confidenceScore} source="Heuristic probability" />
+          </div>
+          <div className="text-[11px] font-mono text-slate-500 pt-2 flex items-center justify-between">
             <span>Payload: <strong>ESP Encrypted</strong></span>
-            <span>Ground truth: <strong>{actualTrafficType}</strong></span>
+            <span>{actualTrafficType === 'Live Real Capture' ? 'Capture: <unknown>' : <>Lab context: <strong>{actualTrafficType}</strong></>}</span>
           </div>
         </div>
 

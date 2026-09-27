@@ -1,8 +1,7 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, lazy, Suspense } from 'react';
 import { VpnCaptureScenario, GatewaySummary, GatewayCorrelationResult } from './types';
 import { auditIpsecSecurity } from './utils/securityAuditor';
 import { classifyEspTraffic } from './utils/aiClassifier';
-import { parseUploadedFile } from './utils/pcapParser';
 import { buildGatewayTelemetrySummary, fetchAnalysisTelemetry, parseWithScapy, registerAnalysis } from './utils/scapyClient';
 import { addSecurityAssociationEvidence } from './analysis/evidence';
 import { Header, AppNavView } from './components/Header';
@@ -13,11 +12,12 @@ import { AiTrafficAnalysis } from './components/AiTrafficAnalysis';
 import { SecurityAssessment } from './components/SecurityAssessment';
 import { PacketViewer } from './components/PacketViewer';
 import { ReportModal } from './components/ReportModal';
-import { TestbedGeneratorModal } from './components/TestbedGeneratorModal';
 import { GatewaysManager } from './components/GatewaysManager';
 import { GatewayDetailsModal } from './components/GatewayDetailsModal';
 import { GatewayReportModal } from './components/GatewayReportModal';
 import { AddGatewayModal } from './components/AddGatewayModal';
+import { CommandPalette, PipelineStepper, StatusDrawer, useThemePreference } from './components/workstation/WorkstationTools';
+import { CaptureProfile } from './components/workstation/CaptureProfile';
 import { fetchGateways } from './utils/gatewayClient';
 import {
   Shield,
@@ -35,7 +35,11 @@ import {
   Server,
 } from 'lucide-react';
 
+// The testbed imports synthetic-PCAP code; defer it until the user opens the lab.
+const TestbedGeneratorModal = lazy(() => import('./components/TestbedGeneratorModal').then(module => ({ default: module.TestbedGeneratorModal })));
+
 export default function App() {
+  const { theme, setTheme } = useThemePreference();
   const [scenarios, setScenarios] = useState<VpnCaptureScenario[]>([]);
   const [selectedScenario, setSelectedScenario] = useState<VpnCaptureScenario | null>(null);
   const [activeTab, setActiveTab] = useState<'SECURITY' | 'AI_TRAFFIC' | 'PACKETS'>('SECURITY');
@@ -61,6 +65,13 @@ export default function App() {
   // Notifications
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [copiedCmd, setCopiedCmd] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisStage, setAnalysisStage] = useState(0);
+  const [isCommandOpen, setIsCommandOpen] = useState(false);
+  const [isStatusOpen, setIsStatusOpen] = useState(false);
+  const [technicalMode, setTechnicalMode] = useState(() => localStorage.getItem('vpn-analysis-mode') === 'technical');
+
+  useEffect(() => { localStorage.setItem('vpn-analysis-mode', technicalMode ? 'technical' : 'simple'); }, [technicalMode]);
 
   const showToast = useCallback((msg: string) => {
     setToastMessage(msg);
@@ -84,6 +95,16 @@ export default function App() {
     return () => clearInterval(timer);
   }, [refreshGatewayCount]);
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); setIsCommandOpen(true); }
+      if (event.key === 'Escape') { setIsCommandOpen(false); setIsStatusOpen(false); }
+      if (event.key === '?' && !(event.target instanceof HTMLInputElement)) showToast('Shortcuts: Ctrl/Cmd+K command palette · Esc closes panels.');
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [showToast]);
+
   // Compute security assessment & AI classification dynamically for the selected real scenario
   const scorecard = useMemo(() => {
     if (!selectedScenario) return null;
@@ -96,6 +117,8 @@ export default function App() {
   }, [selectedScenario]);
 
   const processFile = async (file: File, gatewayOverride?: string) => {
+    setIsAnalyzing(true);
+    setAnalysisStage(0);
     try {
       const activeGwId = gatewayOverride !== undefined ? gatewayOverride : (selectedGatewayId || undefined);
       showToast(
@@ -104,13 +127,17 @@ export default function App() {
           : `Analyzing real capture "${file.name}" with Scapy...`
       );
 
+      setAnalysisStage(1);
       let parsed;
       try {
         parsed = await parseWithScapy(file);
       } catch (scapyError) {
         console.warn('Scapy analyzer unavailable; using browser parser.', scapyError);
+        const { parseUploadedFile } = await import('./utils/pcapParser');
         parsed = await parseUploadedFile(file);
       }
+
+      setAnalysisStage(2);
 
       if (parsed.packets.length === 0) {
         showToast('No packets found in capture file.');
@@ -177,6 +204,7 @@ export default function App() {
       };
 
       setScenarios((prev) => [newScenario, ...prev]);
+      setAnalysisStage(3);
       setSelectedScenario(newScenario);
       // Switch to analysis view when a file is uploaded from Gateways view
       setCurrentView('ANALYSIS');
@@ -189,7 +217,19 @@ export default function App() {
       console.error(err);
       const errorMsg = err instanceof Error ? err.message : 'Ensure it is a valid .pcap or network capture.';
       showToast(`Error parsing file: ${errorMsg}`);
+    } finally {
+      setIsAnalyzing(false);
     }
+  };
+
+  const handleCommand = (action: string) => {
+    if (action === 'analysis') setCurrentView('ANALYSIS');
+    else if (action === 'report' && selectedScenario) setIsReportOpen(true);
+    else if (action === 'gateways') setCurrentView('GATEWAYS');
+    else if (action === 'testbed') setIsTestbedOpen(true);
+    else if (action === 'theme') setTheme(theme === 'dark' ? 'light' : 'dark');
+    else if (action === 'help') showToast('Source badges identify observed, inferred, telemetry, or rule-derived results.');
+    else if (action === 'upload') document.getElementById('dropzone-file')?.click();
   };
 
   const correlateLoadedScenario = async (gatewayId: string) => {
@@ -295,6 +335,10 @@ export default function App() {
         currentView={currentView}
         onViewChange={setCurrentView}
         gatewayCount={gatewayCount}
+        theme={theme}
+        onThemeChange={setTheme}
+        onOpenCommandPalette={() => setIsCommandOpen(true)}
+        onOpenStatus={() => setIsStatusOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -517,6 +561,10 @@ export default function App() {
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                    <div className="flex rounded-md border border-slate-200 p-0.5 text-[11px]" aria-label="Analysis detail mode">
+                      <button onClick={() => setTechnicalMode(false)} className={`rounded px-2 py-1 ${!technicalMode ? 'bg-slate-100 font-semibold text-slate-800' : 'text-slate-500'}`}>Simple</button>
+                      <button onClick={() => setTechnicalMode(true)} className={`rounded px-2 py-1 ${technicalMode ? 'bg-slate-100 font-semibold text-slate-800' : 'text-slate-500'}`}>Technical</button>
+                    </div>
                     {/* Mode 3 Gateway Switcher for loaded capture */}
                     {availableGateways.length > 0 && (
                       <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs">
@@ -563,6 +611,8 @@ export default function App() {
                     actualTrafficType={selectedScenario.actualTrafficType}
                   />
                 )}
+
+                <CaptureProfile sa={selectedScenario.sa} technical={technicalMode} />
 
                 {/* Analysis Navigation Tabs */}
                 <div className="flex items-center justify-between border-b border-slate-200 pb-0">
@@ -626,6 +676,10 @@ export default function App() {
 
       </main>
 
+      <PipelineStepper active={isAnalyzing} stage={analysisStage} />
+      <CommandPalette open={isCommandOpen} onClose={() => setIsCommandOpen(false)} onAction={handleCommand} />
+      <StatusDrawer open={isStatusOpen} onClose={() => setIsStatusOpen(false)} />
+
       {/* Footer */}
       <footer className="border-t border-slate-200 bg-white py-3 px-6">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-400">
@@ -649,12 +703,14 @@ export default function App() {
         />
       )}
 
-      <TestbedGeneratorModal
-        isOpen={isTestbedOpen}
-        onClose={() => setIsTestbedOpen(false)}
-        onLoadCustomScenario={handleLoadCustomScenario}
-        gateways={availableGateways}
-      />
+      <Suspense fallback={null}>
+        <TestbedGeneratorModal
+          isOpen={isTestbedOpen}
+          onClose={() => setIsTestbedOpen(false)}
+          onLoadCustomScenario={handleLoadCustomScenario}
+          gateways={availableGateways}
+        />
+      </Suspense>
 
       <GatewayDetailsModal
         gatewayId={selectedDetailGatewayId}

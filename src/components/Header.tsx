@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
-import { Shield, Upload, Sliders, ChevronDown } from 'lucide-react';
+import { Command, Shield, Upload, Sliders, Activity } from 'lucide-react';
+import { ThemeMenu, ThemePreference } from './workstation/WorkstationTools';
 import { VpnCaptureScenario } from '../types';
 
 export type AppNavView = 'DASHBOARD' | 'ANALYSIS' | 'GATEWAYS' | 'REPORTS';
@@ -15,6 +16,10 @@ interface HeaderProps {
   currentView?: AppNavView;
   onViewChange?: (view: AppNavView) => void;
   gatewayCount?: number;
+  theme: ThemePreference;
+  onThemeChange: (theme: ThemePreference) => void;
+  onOpenCommandPalette: () => void;
+  onOpenStatus: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -28,6 +33,10 @@ export const Header: React.FC<HeaderProps> = ({
   currentView = 'DASHBOARD',
   onViewChange,
   gatewayCount = 0,
+  theme,
+  onThemeChange,
+  onOpenCommandPalette,
+  onOpenStatus,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -59,7 +68,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Main Navigation Tabs */}
-          <nav className="flex items-center space-x-1 sm:space-x-2">
+          <nav aria-label="Primary navigation" className="hidden lg:flex items-center space-x-1 sm:space-x-2">
             {navItems.map((item) => {
               const isActive = currentView === item.id;
               return (
@@ -92,6 +101,8 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Right Utility Actions */}
           <div className="flex items-center gap-2">
+            <button onClick={onOpenCommandPalette} className="hidden xl:inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1.5 text-xs text-slate-500 hover:bg-slate-50" aria-label="Open command palette"><Command className="h-3.5 w-3.5" /><span>Command</span><kbd className="ml-1 text-[10px]">⌘K</kbd></button>
+            <ThemeMenu theme={theme} setTheme={onThemeChange} />
             {/* Quick PCAP Upload Button */}
             <input
               type="file"
@@ -122,10 +133,7 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
 
             {/* Status indicator */}
-            <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200 text-[11px] text-slate-500">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span className="hidden sm:inline">Engine Online</span>
-            </div>
+            <button onClick={onOpenStatus} className="flex items-center gap-1.5 pl-2 border-l border-slate-200 text-[11px] text-slate-500 hover:text-slate-800" title="Open system status"><Activity className="h-3.5 w-3.5 text-slate-400" /><span className="w-2 h-2 rounded-full bg-slate-400" /><span className="hidden sm:inline">System status</span></button>
           </div>
         </div>
       </div>

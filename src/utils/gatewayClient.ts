@@ -219,7 +219,7 @@ export interface GatewaySecurityReport {
 }
 
 export interface GatewayAiReport {
-  source: 'GROQ_LLM';
+  source: 'GROQ_LLM' | 'LLM7_LLM' | 'OPENAI_LLM' | 'GEMINI_LLM';
   model: string;
   reportGeneratedAt: string;
   score: GatewaySecurityReport['securityAssessment']['score'];
@@ -254,8 +254,26 @@ export async function generateGatewayAiReport(gatewayId: string): Promise<Gatewa
   if (!response.ok) {
     const messages: Record<string, string> = {
       GROQ_API_KEY_NOT_CONFIGURED: 'Set GROQ_API_KEY in the project .env file and restart the API.',
+      LLM7_API_KEY_NOT_CONFIGURED: 'Set LLM7_API_KEY and LLM_PROVIDER=llm7 in the project .env file, then restart the API.',
+      OPENAI_API_KEY_NOT_CONFIGURED: 'Set OPENAI_API_KEY and LLM_PROVIDER=openai in the project .env file, then restart the API.',
+      GEMINI_API_KEY_NOT_CONFIGURED: 'Set GEMINI_API_KEY and LLM_PROVIDER=gemini in the project .env file, then restart the API.',
       GROQ_RATE_LIMITED: 'Groq rate limit reached. Try again later.',
       GROQ_UNAVAILABLE: 'Groq is unavailable. PDF export still works without AI narrative.',
+      LLM7_UNAVAILABLE: 'LLM7 is unavailable. PDF export still works without AI narrative.',
+      LLM7_HTTP_401: 'LLM7 rejected the API key. Rotate the exposed key, update LLM7_API_KEY, and restart the API.',
+      LLM7_HTTP_403: 'LLM7 denied this request. Check the replacement key, account access, and selected model.',
+      LLM7_HTTP_400: 'LLM7 rejected the selected model or request. Set LLM7_MODEL=default, restart the API, and try again.',
+      LLM7_HTTP_404: 'The selected LLM7 model is unavailable. Set LLM7_MODEL=default or another valid LLM7 chat model, then restart the API.',
+      OPENAI_HTTP_401: 'OpenAI rejected the API key. Create a replacement key, update OPENAI_API_KEY, and restart the API.',
+      OPENAI_HTTP_403: 'OpenAI denied this request. Check project access, billing, and the selected model.',
+      OPENAI_HTTP_400: 'OpenAI rejected the selected model or request. Set OPENAI_MODEL=gpt-5-mini, restart the API, and try again.',
+      OPENAI_HTTP_404: 'The selected OpenAI model is unavailable to this project. Choose an available model and restart the API.',
+      OPENAI_UNAVAILABLE: 'OpenAI is unavailable. PDF export still works without AI narrative.',
+      GEMINI_HTTP_400: 'Gemini rejected the selected model or request. Set GEMINI_MODEL=gemini-2.0-flash, restart the API, and try again.',
+      GEMINI_HTTP_401: 'Gemini rejected the API key. Replace GEMINI_API_KEY and restart the API server.',
+      GEMINI_HTTP_403: 'Gemini denied this request. Check the API key restrictions and Gemini API access.',
+      GEMINI_HTTP_404: 'The selected Gemini model is unavailable. Set GEMINI_MODEL=gemini-2.0-flash or another model available to your key, then restart the API.',
+      GEMINI_UNAVAILABLE: 'Gemini is unavailable. PDF export still works without AI narrative.',
     };
     throw new Error(messages[payload.error ?? ''] ?? `AI report failed (${payload.error ?? response.status})`);
   }

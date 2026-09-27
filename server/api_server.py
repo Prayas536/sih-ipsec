@@ -23,8 +23,11 @@ from typing import Any
 
 from ai_reporting import (
     GroqReportError,
+    build_capture_ai_context,
     build_gateway_ai_context,
     generate_groq_narrative,
+    llm_configured,
+    llm_provider_details,
     load_project_env,
 )
 from correlation import correlate_spi
@@ -475,6 +478,9 @@ class ApiHandler(BaseHTTPRequestHandler):
             return
 
         # 6. Legacy Telemetry Ingestion
+        if path == "/api/reports/pcap-ai-narrative":
+            self._generate_capture_ai_report(body)
+            return
         if path == "/api/agent/telemetry":
             self._ingest_metadata(body)
             return
@@ -1158,8 +1164,10 @@ echo "  vpn-analyzer-agent enroll --server $SERVER_URL --token <ONE_TIME_TOKEN>"
         if report is None:
             json_response(self, 404, {"error": "GATEWAY_NOT_FOUND"})
             return
-        if not os.environ.get("GROQ_API_KEY", "").strip():
-            json_response(self, 503, {"error": "GROQ_API_KEY_NOT_CONFIGURED"})
+        if not llm_configured():
+            provider = llm_provider_details()[0]
+            error = "LLM7_API_KEY_NOT_CONFIGURED" if provider == "llm7" else "OPENAI_API_KEY_NOT_CONFIGURED" if provider == "openai" else "GEMINI_API_KEY_NOT_CONFIGURED" if provider == "gemini" else "GROQ_API_KEY_NOT_CONFIGURED"
+            json_response(self, 503, {"error": error})
             return
 
         client_ip = self.client_address[0] if self.client_address else "unknown"
@@ -1169,23 +1177,58 @@ echo "  vpn-analyzer-agent enroll --server $SERVER_URL --token <ONE_TIME_TOKEN>"
             if now - last_request < AI_REPORT_COOLDOWN_SECONDS:
                 json_response(self, 429, {"error": "AI_REPORT_RATE_LIMITED"})
                 return
-            _AI_REPORT_LAST_REQUEST[client_ip] = now
-
         try:
             narrative = generate_groq_narrative(build_gateway_ai_context(report))
         except GroqReportError as exc:
             json_response(self, exc.status, {"error": exc.code})
             return
+        with _AI_REPORT_RATE_LOCK:
+            _AI_REPORT_LAST_REQUEST[client_ip] = time.monotonic()
 
         json_response(self, 200, {
-            "source": "GROQ_LLM",
-            "model": os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile"),
+            "source": f"{llm_provider_details()[0].upper()}_LLM",
+            "model": llm_provider_details()[3],
             "reportGeneratedAt": report["reportGeneratedAt"],
             "score": report["securityAssessment"]["score"],
             "findings": report["securityAssessment"]["findings"],
             "limitations": report["securityAssessment"]["limitations"],
             "configurationRecommendations": report["securityAssessment"]["configurationRecommendations"],
             "charts": report["securityAssessment"]["charts"],
+            "narrative": narrative,
+        })
+
+    def _generate_capture_ai_report(self, body: bytes) -> None:
+        """Generate constrained AI prose for an already-computed PCAP report."""
+        if not llm_configured():
+            provider = llm_provider_details()[0]
+            error = "LLM7_API_KEY_NOT_CONFIGURED" if provider == "llm7" else "OPENAI_API_KEY_NOT_CONFIGURED" if provider == "openai" else "GEMINI_API_KEY_NOT_CONFIGURED" if provider == "gemini" else "GROQ_API_KEY_NOT_CONFIGURED"
+            json_response(self, 503, {"error": error})
+            return
+        try:
+            report = json.loads(body.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            json_response(self, 400, {"error": "INVALID_REPORT_PAYLOAD"})
+            return
+        if not isinstance(report, dict):
+            json_response(self, 400, {"error": "INVALID_REPORT_PAYLOAD"})
+            return
+        client_ip = self.client_address[0] if self.client_address else "unknown"
+        now = time.monotonic()
+        with _AI_REPORT_RATE_LOCK:
+            last_request = _AI_REPORT_LAST_REQUEST.get(client_ip, 0)
+            if now - last_request < AI_REPORT_COOLDOWN_SECONDS:
+                json_response(self, 429, {"error": "AI_REPORT_RATE_LIMITED"})
+                return
+        try:
+            narrative = generate_groq_narrative(build_capture_ai_context(report))
+        except GroqReportError as exc:
+            json_response(self, exc.status, {"error": exc.code})
+            return
+        with _AI_REPORT_RATE_LOCK:
+            _AI_REPORT_LAST_REQUEST[client_ip] = time.monotonic()
+        json_response(self, 200, {
+            "source": f"{llm_provider_details()[0].upper()}_LLM",
+            "model": llm_provider_details()[3],
             "narrative": narrative,
         })
 

@@ -1,64 +1,26 @@
 @import "tailwindcss";
 
 @layer base {
-  :root {
-    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-  }
-
-  body {
-    background-color: #f8fafc; /* Slate 50 */
-    color: #0f172a; /* Slate 900 */
-    font-family: var(--font-sans);
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    margin: 0;
-    padding: 0;
-  }
-
-  code, pre, kbd, samp {
-    font-family: var(--font-mono);
-  }
+  :root { --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; --bg:#f6f8fb; --surface:#fff; --surface-hover:#f1f5f9; --surface-active:#e8eef7; --border:#dbe3ef; --border-subtle:#edf1f6; --text:#122033; --text-secondary:#526176; --muted:#748198; --accent:#1769aa; --accent-hover:#0f5590; --success:#15803d; --warning:#b45309; --danger:#c2413b; --info:#2563eb; --unknown:#64748b; --radius:10px; --shadow:0 1px 2px rgb(15 23 42 / .06),0 8px 24px rgb(15 23 42 / .04); }
+  :root[data-theme='dark'] { --bg:#0b1220; --surface:#101a2b; --surface-hover:#162338; --surface-active:#1c2c45; --border:#27364d; --border-subtle:#1b2940; --text:#e7edf6; --text-secondary:#acb9ca; --muted:#8290a6; --accent:#55a8e8; --accent-hover:#7dc0f0; --success:#4ade80; --warning:#fbbf24; --danger:#fb7185; --info:#60a5fa; --unknown:#94a3b8; --shadow:0 1px 2px rgb(0 0 0 / .24),0 10px 30px rgb(0 0 0 / .18); }
+  body { background:var(--bg); color:var(--text); font-family:var(--font-sans); -webkit-font-smoothing:antialiased; margin:0; }
+  code, pre, kbd, samp { font-family:var(--font-mono); }
+  button, input, select { font:inherit; }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 }
 
-/* Custom scrollbars for high-density network data */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: #f1f5f9;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-
-/* Technical Data Table Utilities */
-.table-compact th {
-  padding: 8px 12px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #475569;
-  background-color: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.table-compact td {
-  padding: 8px 12px;
-  font-size: 12px;
-  color: #1e293b;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.table-compact tr:hover td {
-  background-color: #f8fafc;
-}
+/* Token bridge: existing utility-based views inherit both intentional themes. */
+[data-theme='dark'] .bg-white { background-color:var(--surface)!important; }
+[data-theme='dark'] .bg-slate-50,[data-theme='dark'] .bg-slate-50\/50 { background-color:var(--surface-hover)!important; }
+[data-theme='dark'] .bg-slate-100 { background-color:var(--surface-active)!important; }
+[data-theme='dark'] .border-slate-100,[data-theme='dark'] .border-slate-200,[data-theme='dark'] .border-slate-300 { border-color:var(--border)!important; }
+[data-theme='dark'] .text-slate-900,[data-theme='dark'] .text-slate-800,[data-theme='dark'] .text-slate-700 { color:var(--text)!important; }
+[data-theme='dark'] .text-slate-600,[data-theme='dark'] .text-slate-500,[data-theme='dark'] .text-slate-400 { color:var(--text-secondary)!important; }
+[data-theme='dark'] .hover\:bg-slate-50:hover,[data-theme='dark'] .hover\:bg-slate-100:hover { background-color:var(--surface-active)!important; }
+::-webkit-scrollbar { width:7px; height:7px; } ::-webkit-scrollbar-track { background:var(--bg); } ::-webkit-scrollbar-thumb { background:var(--unknown); border-radius:999px; }
+.table-compact th { padding:8px 12px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--text-secondary); background:var(--surface-hover); border-bottom:1px solid var(--border); }
+.table-compact td { padding:8px 12px; font-size:12px; color:var(--text); border-bottom:1px solid var(--border-subtle); }
+.table-compact tr:hover td { background:var(--surface-hover); }
+.surface { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); }
+.animate-drawer { animation:drawer-in .2s ease-out; } @keyframes drawer-in { from{opacity:0;transform:translateX(16px)} to{opacity:1;transform:translateX(0)} }
+@media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms!important; transition-duration:.01ms!important; scroll-behavior:auto!important; } }
