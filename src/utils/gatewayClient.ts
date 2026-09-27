@@ -230,6 +230,7 @@ export interface GatewayAiReport {
   narrative: {
     executive_summary: string;
     technical_interpretation: string;
+    finding_notes: Array<{ id: string; why_it_matters: string }>;
     recommendation_notes: Array<{ id: string; note: string }>;
   };
 }

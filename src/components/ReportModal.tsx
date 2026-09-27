@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   X,
   Download,
@@ -9,10 +9,12 @@ import {
   ShieldAlert,
   FileText,
   FileJson,
+  Sparkles,
   Wifi,
 } from 'lucide-react';
 import { AiPrediction, IkeSecurityAssociation, SecurityScorecard, VpnCaptureScenario } from '../types';
 import { CombinedAnalysisPanel } from './CombinedAnalysisPanel';
+import { generatePcapReportNarrative, PcapAiNarrative } from '../utils/pcapReportClient';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -33,6 +35,15 @@ export const ReportModal: React.FC<ReportModalProps> = ({
 }) => {
   const [reportType, setReportType] = useState<'EXECUTIVE' | 'TECHNICAL' | 'COMBINED'>('EXECUTIVE');
   const [copied, setCopied] = useState(false);
+  const [aiNarrative, setAiNarrative] = useState<PcapAiNarrative | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setAiNarrative(null);
+    setAiError(null);
+    setAiLoading(false);
+  }, [scenario.id, isOpen]);
 
   if (!isOpen) return null;
 
@@ -71,6 +82,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
       },
       scorecard,
       prediction,
+      aiNarrative: aiNarrative?.narrative ?? null,
     };
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -79,6 +91,18 @@ export const ReportModal: React.FC<ReportModalProps> = ({
     a.download = `IPsec_Security_Audit_${scenario.id}.json`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleGenerateAiNarrative = async () => {
+    setAiLoading(true);
+    setAiError(null);
+    try {
+      setAiNarrative(await generatePcapReportNarrative(scenario, scorecard, prediction));
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : 'AI narrative generation failed.');
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   const handleDownloadPdf = () => {
@@ -156,12 +180,22 @@ export const ReportModal: React.FC<ReportModalProps> = ({
     scoreBar('Evidence-adjusted score', scorecard.totalScore, [25, 132, 105]);
     scoreBar('Evidence coverage', scorecard.evidenceCoveragePercent, [42, 115, 165]);
 
+    section('Executive Summary');
+    paragraph(aiNarrative?.narrative.executive_summary ??
+      `This ${scenario.sa.ikeVersion} capture received a ${scorecard.rating.toLowerCase()} rating with ${scorecard.evidenceCoveragePercent}% evidence coverage. ${scorecard.findings.filter((finding) => finding.severity === 'Critical' || finding.severity === 'High').length} Critical/High finding(s) were observed. Unknown controls remain unverified.`);
+    if (aiNarrative) {
+      section('AI Technical Interpretation');
+      paragraph(aiNarrative.narrative.technical_interpretation);
+    }
+
     section('Observed Security Findings');
-    table(['Severity', 'Parameter', 'Detected', 'Recommendation'], scorecard.findings.map((finding) => [
+    const findingNotes = new Map((aiNarrative?.narrative.finding_notes ?? []).map((note) => [note.id, note.why_it_matters]));
+    table(['Severity', 'Parameter', 'Detected', 'Recommendation', 'AI context'], scorecard.findings.map((finding, index) => [
       finding.severity,
       finding.parameter,
       finding.detectedValue,
       finding.remediation,
+      findingNotes.get(`F${index + 1}`) ?? (aiNarrative ? 'No additional AI interpretation.' : 'AI interpretation not generated.'),
     ]));
 
     section('Cryptographic Parameters');
@@ -176,13 +210,15 @@ export const ReportModal: React.FC<ReportModalProps> = ({
       ['Replay protection', scenario.sa.replayProtection === null ? 'Not determined' : scenario.sa.replayProtection ? 'Enabled' : 'Disabled'],
     ]);
 
-    section('Encrypted Traffic Classification');
-    table(['Result', 'Confidence', 'Packet count', 'Entropy'], [[
+    section('Encrypted Traffic Classification (Inference)');
+    table(['Predicted category', 'Confidence', 'Packet count', 'Entropy'], [[
       prediction.predictedClass,
       `${prediction.confidenceScore}%`,
       String(scenario.features.packetCount),
       `${scenario.features.calculatedEntropy} bits/byte`,
     ]]);
+    paragraph(aiNarrative?.narrative.traffic_interpretation ??
+      'The predicted category is an inference from aggregate flow characteristics. Encrypted payload contents are not exposed or identified.');
 
     if (scenario.gatewayTelemetry) {
       section('Gateway Correlation');
@@ -198,7 +234,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
       doc.setPage(page);
       doc.setFontSize(7);
       doc.setTextColor(120, 130, 138);
-      doc.text('Unknown controls are not treated as secure; findings are based on the displayed evidence.', margin, pageHeight - 7);
+      doc.text('Unknown controls remain unverified; AI text is explanatory and does not change deterministic findings.', margin, pageHeight - 7);
       doc.text(`${page}/${totalPages}`, pageWidth - margin, pageHeight - 7, { align: 'right' });
     }
     doc.save(`IPsec_Security_Report_${scenario.id}_${reportType.toLowerCase()}.pdf`);
@@ -224,6 +260,26 @@ export const ReportModal: React.FC<ReportModalProps> = ({
 - **Gateway Evidence:** ${gt.evidence.length > 0 ? gt.evidence.join('; ') : 'No gateway evidence'}
 `;
     }
+
+    const aiMarkdown = aiNarrative
+  ? `
+---
+
+## AI-Generated Assessment Context (${aiNarrative.model})
+${aiNarrative.narrative.executive_summary}
+
+### Technical Interpretation
+${aiNarrative.narrative.technical_interpretation}
+
+### Traffic Classification Interpretation
+${aiNarrative.narrative.traffic_interpretation}
+
+### Finding Context
+${aiNarrative.narrative.finding_notes.map((note) => `- **${note.id}:** ${note.why_it_matters}`).join('\n') || 'No finding-specific notes returned.'}
+
+AI text explains supplied evidence only; deterministic findings, scores, and remediation remain authoritative.
+`
+  : '';
 
     return `# NTRO IPsec Security Assessment Report: ${scenario.name}
 **Report Type:** ${
@@ -278,7 +334,7 @@ ${scorecard.findings
 - **Action Required:** ${f.remediation}
 `
   )
-  .join('\n')}${telemetrySection}
+  .join('\n')}${telemetrySection}${aiMarkdown}
 `;
   };
 
@@ -525,6 +581,20 @@ ${scorecard.findings
             </div>
           )}
 
+          {aiLoading && <p className="text-xs text-cyan-300" role="status">Generating report interpretation from verified assessment data...</p>}
+          {aiError && <p className="p-3 rounded-lg border border-rose-800 bg-rose-950/40 text-xs text-rose-200" role="alert">{aiError}</p>}
+          {aiNarrative && (
+            <section className="p-4 rounded-xl border border-cyan-800 bg-cyan-950/30 space-y-2">
+              <h3 className="text-xs font-bold uppercase text-cyan-200 flex items-center gap-2">
+                <Sparkles className="w-4 h-4" /> AI interpretation · {aiNarrative.model}
+              </h3>
+              <p className="text-sm text-slate-100">{aiNarrative.narrative.executive_summary}</p>
+              <p className="text-xs text-slate-300">{aiNarrative.narrative.technical_interpretation}</p>
+              <p className="text-xs text-slate-300">{aiNarrative.narrative.traffic_interpretation}</p>
+              <p className="text-[11px] text-cyan-200">Traffic category is an inference; AI text does not alter deterministic findings or scores.</p>
+            </section>
+          )}
+
         </div>
 
         {/* Modal Footer Controls */}
@@ -534,6 +604,16 @@ ${scorecard.findings
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              id="btn-generate-ai-report"
+              onClick={handleGenerateAiNarrative}
+              disabled={aiLoading}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-cyan-900 hover:bg-cyan-800 text-cyan-100 border border-cyan-700 transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>{aiLoading ? 'Generating...' : aiNarrative ? 'Refresh AI Text' : 'Generate AI Text'}</span>
+            </button>
+
             <button
               id="btn-download-json"
               onClick={handleDownloadJson}

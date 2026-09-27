@@ -24,6 +24,8 @@ from typing import Any
 from ai_reporting import (
     GroqReportError,
     build_gateway_ai_context,
+    build_pcap_ai_context,
+    generate_groq_pcap_narrative,
     generate_groq_narrative,
     load_project_env,
 )
@@ -38,6 +40,7 @@ load_project_env()
 HOST = os.environ.get("VPN_ANALYZER_API_HOST", "0.0.0.0")
 PORT = int(os.environ.get("VPN_ANALYZER_API_PORT", "8770"))
 MAX_BODY_BYTES = 100 * 1024 * 1024
+MAX_PCAP_REPORT_CONTEXT_BYTES = 64 * 1024
 AGENT_TOKEN = os.environ.get("VPN_ANALYZER_AGENT_TOKEN")
 REPOSITORY = AnalysisRepository(os.environ.get("VPN_ANALYZER_DATABASE", "data/analyzer.sqlite3"))
 AI_REPORT_COOLDOWN_SECONDS = 15
@@ -415,16 +418,23 @@ class ApiHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         content_length = int(self.headers.get("Content-Length", "0"))
+        path = self.path.split("?")[0].rstrip("/")
         if content_length > MAX_BODY_BYTES:
             json_response(self, 413, {"error": "INVALID_CONTENT_LENGTH"})
             return
+        if path == "/api/reports/pcap-narrative" and content_length > MAX_PCAP_REPORT_CONTEXT_BYTES:
+            json_response(self, 413, {"error": "REPORT_CONTEXT_TOO_LARGE"})
+            return
 
         body = self.rfile.read(content_length) if content_length > 0 else b""
-        path = self.path.split("?")[0].rstrip("/")
 
         # 1. PCAP Analysis
         if path == "/api/analyze/pcap":
             self._analyze_pcap(body)
+            return
+
+        if path == "/api/reports/pcap-narrative":
+            self._generate_pcap_report_narrative(body)
             return
 
         # 2. Gateway Registration
@@ -1179,13 +1189,46 @@ echo "  vpn-analyzer-agent enroll --server $SERVER_URL --token <ONE_TIME_TOKEN>"
 
         json_response(self, 200, {
             "source": "GROQ_LLM",
-            "model": os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile"),
+            "model": os.environ.get("GROQ_MODEL", "qwen/qwen3.8-27b"),
             "reportGeneratedAt": report["reportGeneratedAt"],
             "score": report["securityAssessment"]["score"],
             "findings": report["securityAssessment"]["findings"],
             "limitations": report["securityAssessment"]["limitations"],
             "configurationRecommendations": report["securityAssessment"]["configurationRecommendations"],
             "charts": report["securityAssessment"]["charts"],
+            "narrative": narrative,
+        })
+
+    def _generate_pcap_report_narrative(self, body: bytes) -> None:
+        if not os.environ.get("GROQ_API_KEY", "").strip():
+            json_response(self, 503, {"error": "GROQ_API_KEY_NOT_CONFIGURED"})
+            return
+
+        try:
+            report_context = json.loads(body.decode("utf-8"))
+            context = build_pcap_ai_context(report_context)
+        except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError):
+            json_response(self, 400, {"error": "INVALID_REPORT_CONTEXT"})
+            return
+
+        client_ip = self.client_address[0] if self.client_address else "unknown"
+        now = time.monotonic()
+        with _AI_REPORT_RATE_LOCK:
+            last_request = _AI_REPORT_LAST_REQUEST.get(client_ip, 0)
+            if now - last_request < AI_REPORT_COOLDOWN_SECONDS:
+                json_response(self, 429, {"error": "AI_REPORT_RATE_LIMITED"})
+                return
+            _AI_REPORT_LAST_REQUEST[client_ip] = now
+
+        try:
+            narrative = generate_groq_pcap_narrative(context)
+        except GroqReportError as exc:
+            json_response(self, exc.status, {"error": exc.code})
+            return
+
+        json_response(self, 200, {
+            "source": "GROQ_LLM",
+            "model": os.environ.get("GROQ_MODEL", "qwen/qwen3.8-27b"),
             "narrative": narrative,
         })
 

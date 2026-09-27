@@ -17,9 +17,8 @@ import {
   Key,
   Sparkles,
 } from 'lucide-react';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { GatewayAiReport, GatewaySecurityReport, fetchGatewayReport, generateGatewayAiReport } from '../utils/gatewayClient';
+import { downloadGatewayReportPdf } from '../utils/gatewayPdf';
 
 interface GatewayReportModalProps {
   isOpen: boolean;
@@ -217,146 +216,7 @@ ${limitationsMd}
 
   const handleDownloadPdf = () => {
     if (!report) return;
-    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 14;
-    let y = 16;
-    const printable = (value: unknown) => String(value ?? 'Not determinable');
-
-    const ensureSpace = (height: number) => {
-      if (y + height > pageHeight - margin) {
-        doc.addPage();
-        y = margin;
-      }
-    };
-    const section = (title: string) => {
-      ensureSpace(14);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(12);
-      doc.setTextColor(25, 50, 72);
-      doc.text(title, margin, y);
-      y += 7;
-    };
-    const paragraph = (text: string, size = 9) => {
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(size);
-      doc.setTextColor(45, 55, 65);
-      const lines = doc.splitTextToSize(text, pageWidth - margin * 2);
-      ensureSpace(lines.length * 4.5 + 3);
-      doc.text(lines, margin, y);
-      y += lines.length * 4.5 + 4;
-    };
-    const table = (head: string[], rows: string[][]) => {
-      ensureSpace(18);
-      autoTable(doc, {
-        startY: y,
-        head: [head],
-        body: rows.length ? rows : [['No data', ...head.slice(1).map(() => '')]],
-        margin: { left: margin, right: margin },
-        styles: { font: 'helvetica', fontSize: 7.5, cellPadding: 2, overflow: 'linebreak' },
-        headStyles: { fillColor: [28, 66, 83], textColor: 255 },
-        alternateRowStyles: { fillColor: [245, 248, 249] },
-      });
-      y = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? y + 12;
-      y += 7;
-    };
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(17);
-    doc.setTextColor(24, 54, 70);
-    doc.text('Gateway Security Assessment', margin, y);
-    y += 8;
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(75, 85, 95);
-    doc.text(`${report.gateway.display_name} | ${report.gateway.gateway_type} | ${report.reportGeneratedAt} UTC`, margin, y);
-    y += 9;
-
-    section('Security Score and Evidence Coverage');
-    const score = report.securityAssessment.score;
-    paragraph(`${score.value}/100 verified points | ${score.rating} | ${score.status} | ${score.evidenceCoveragePercent}% evidence coverage`);
-    const barWidth = pageWidth - margin * 2;
-    const drawBar = (label: string, value: number, color: [number, number, number]) => {
-      ensureSpace(10);
-      doc.setFontSize(8);
-      doc.setTextColor(50, 60, 70);
-      doc.text(`${label}: ${value}%`, margin, y);
-      y += 2;
-      doc.setFillColor(230, 235, 238);
-      doc.rect(margin, y, barWidth, 4, 'F');
-      doc.setFillColor(...color);
-      doc.rect(margin, y, barWidth * Math.max(0, Math.min(100, value)) / 100, 4, 'F');
-      y += 8;
-    };
-    drawBar('Verified score', score.value, [25, 132, 105]);
-    drawBar('Evidence coverage', score.evidenceCoveragePercent, [42, 115, 165]);
-
-    const severityEntries = Object.entries(report.securityAssessment.charts.findingSeverityCounts)
-      .filter(([severity]) => severity !== 'Pass');
-    if (severityEntries.some(([, count]) => count > 0)) {
-      section('Finding Severity Distribution');
-      const maxCount = Math.max(1, ...severityEntries.map(([, count]) => count));
-      severityEntries.forEach(([severity, count]) => {
-        ensureSpace(8);
-        doc.setFontSize(8);
-        doc.setTextColor(50, 60, 70);
-        doc.text(`${severity}: ${count}`, margin, y + 3);
-        const width = Math.max(1, (barWidth - 35) * count / maxCount);
-        doc.setFillColor(severity === 'Critical' ? 190 : severity === 'High' ? 220 : 210, severity === 'Critical' ? 55 : 145, 75);
-        doc.rect(margin + 35, y, width, 4, 'F');
-        y += 7;
-      });
-      y += 3;
-    }
-
-    section('Executive Summary');
-    paragraph(aiReport?.narrative.executive_summary ?? 'AI narrative not generated. Findings, scores, and recommendations below are deterministic.');
-    if (aiReport?.narrative.technical_interpretation) {
-      section('Technical Interpretation (AI-assisted)');
-      paragraph(aiReport.narrative.technical_interpretation);
-    }
-
-    section('Security Findings');
-    table(['Severity', 'Finding', 'Observed', 'Assessment'], report.securityAssessment.findings.map((finding) => [
-      finding.severity, finding.category, finding.value, finding.detail,
-    ]));
-
-    section('Configuration Hardening Recommendations');
-    const aiNotes = new Map((aiReport?.narrative.recommendation_notes ?? []).map((note) => [note.id, note.note]));
-    table(['Setting', 'Current', 'Recommended', 'Basis / AI note'], report.securityAssessment.configurationRecommendations.map((item) => [
-      item.setting,
-      item.current,
-      item.recommended,
-      [item.basis, aiNotes.get(item.id)].filter(Boolean).join(' '),
-    ]));
-
-    section('Active IKE Security Associations');
-    table(['Version', 'Encryption', 'Integrity', 'PRF', 'DH Group'], report.telemetry.ikeRecords.map((ike) => [
-      printable(ike.version), printable(ike.encr), printable(ike.integ), printable(ike.prf), printable(ike.dh),
-    ]));
-
-    section('Active Child Security Associations');
-    table(['Mode', 'Cipher / Integrity', 'DH / PFS', 'Replay In / Out', 'ESN In / Out'], report.telemetry.childRecords.map((child) => [
-      `${printable(child.protocol)} / ${printable(child.mode)}`,
-      `${printable(child.encr)} / ${printable(child.integ)}`,
-      `${printable(child.dh)} / ${child.dh ? 'Enabled' : 'Not determinable'}`,
-      `${printable(child.replay_window_in)} / ${printable(child.replay_window_out)}`,
-      `${printable(child.esn_in)} / ${printable(child.esn_out)}`,
-    ]));
-
-    section('Evidence Limitations');
-    report.securityAssessment.limitations.forEach((limitation) => paragraph(`• ${limitation}`));
-
-    const pageCount = doc.getNumberOfPages();
-    for (let page = 1; page <= pageCount; page += 1) {
-      doc.setPage(page);
-      doc.setFontSize(7);
-      doc.setTextColor(120, 130, 138);
-      doc.text('Deterministic findings are authoritative; AI text is explanatory and does not alter findings or scores.', margin, pageHeight - 7);
-      doc.text(`${page}/${pageCount}`, pageWidth - margin, pageHeight - 7, { align: 'right' });
-    }
-    doc.save(`gateway_security_report_${gatewayId || 'gateway'}.pdf`);
+    downloadGatewayReportPdf(report, aiReport);
   };
 
   return (
