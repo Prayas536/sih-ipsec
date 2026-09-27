@@ -1,0 +1,288 @@
+{
+  "encryption": {
+    "accuracy": 0.6129032258064516,
+    "correct": 19,
+    "n": 31,
+    "report": {
+      "AES128": {
+        "precision": 0.5454545454545454,
+        "recall": 0.46153846153846156,
+        "f1-score": 0.5,
+        "support": 13.0
+      },
+      "AES256": {
+        "precision": 0.65,
+        "recall": 0.7222222222222222,
+        "f1-score": 0.6842105263157895,
+        "support": 18.0
+      },
+      "accuracy": 0.6129032258064516,
+      "macro avg": {
+        "precision": 0.5977272727272727,
+        "recall": 0.5918803418803419,
+        "f1-score": 0.5921052631578947,
+        "support": 31.0
+      },
+      "weighted avg": {
+        "precision": 0.6061583577712609,
+        "recall": 0.6129032258064516,
+        "f1-score": 0.6069609507640068,
+        "support": 31.0
+      }
+    },
+    "classes": [
+      "AES128",
+      "AES256"
+    ],
+    "confusion_matrix": [
+      [
+        6,
+        7
+      ],
+      [
+        5,
+        13
+      ]
+    ],
+    "features": [
+      "packet_count",
+      "total_bytes",
+      "avg_packet_size",
+      "min_packet_size",
+      "max_packet_size",
+      "capture_duration_seconds",
+      "udp_packet_count",
+      "udp_500_count",
+      "ike_packet_count",
+      "esp_packet_count",
+      "create_child_sa_count",
+      "informational_count",
+      "ike_request_count",
+      "ike_response_count",
+      "ike_bytes",
+      "ike_avg_packet_size",
+      "esp_bytes",
+      "esp_avg_packet_size"
+    ],
+    "model": "RandomForestClassifier",
+    "n_estimators": 300
+  },
+  "hash": {
+    "accuracy": 1.0,
+    "correct": 31,
+    "n": 31,
+    "report": {
+      "SHA256": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 18.0
+      },
+      "SHA384": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 13.0
+      },
+      "accuracy": 1.0,
+      "macro avg": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 31.0
+      },
+      "weighted avg": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 31.0
+      }
+    },
+    "classes": [
+      "SHA256",
+      "SHA384"
+    ],
+    "confusion_matrix": [
+      [
+        18,
+        0
+      ],
+      [
+        0,
+        13
+      ]
+    ],
+    "features": [
+      "packet_count",
+      "total_bytes",
+      "avg_packet_size",
+      "min_packet_size",
+      "max_packet_size",
+      "capture_duration_seconds",
+      "udp_packet_count",
+      "udp_500_count",
+      "ike_packet_count",
+      "esp_packet_count",
+      "create_child_sa_count",
+      "informational_count",
+      "ike_request_count",
+      "ike_response_count",
+      "ike_bytes",
+      "ike_avg_packet_size",
+      "esp_bytes",
+      "esp_avg_packet_size"
+    ],
+    "model": "RandomForestClassifier",
+    "n_estimators": 300
+  },
+  "dh_group": {
+    "accuracy": 0.9354838709677419,
+    "correct": 29,
+    "n": 31,
+    "report": {
+      "DH14": {
+        "precision": 1.0,
+        "recall": 0.8823529411764706,
+        "f1-score": 0.9375,
+        "support": 17.0
+      },
+      "DH15": {
+        "precision": 0.875,
+        "recall": 1.0,
+        "f1-score": 0.9333333333333333,
+        "support": 14.0
+      },
+      "accuracy": 0.9354838709677419,
+      "macro avg": {
+        "precision": 0.9375,
+        "recall": 0.9411764705882353,
+        "f1-score": 0.9354166666666667,
+        "support": 31.0
+      },
+      "weighted avg": {
+        "precision": 0.9435483870967742,
+        "recall": 0.9354838709677419,
+        "f1-score": 0.9356182795698925,
+        "support": 31.0
+      }
+    },
+    "classes": [
+      "DH14",
+      "DH15"
+    ],
+    "confusion_matrix": [
+      [
+        15,
+        2
+      ],
+      [
+        0,
+        14
+      ]
+    ],
+    "features": [
+      "packet_count",
+      "total_bytes",
+      "avg_packet_size",
+      "min_packet_size",
+      "max_packet_size",
+      "capture_duration_seconds",
+      "udp_packet_count",
+      "udp_500_count",
+      "ike_packet_count",
+      "esp_packet_count",
+      "create_child_sa_count",
+      "informational_count",
+      "ike_request_count",
+      "ike_response_count",
+      "ike_bytes",
+      "ike_avg_packet_size",
+      "esp_bytes",
+      "esp_avg_packet_size"
+    ],
+    "model": "RandomForestClassifier",
+    "n_estimators": 300
+  },
+  "pfs_group": {
+    "accuracy": 0.967741935483871,
+    "correct": 30,
+    "n": 31,
+    "report": {
+      "NOPFS": {
+        "precision": 1.0,
+        "recall": 0.9,
+        "f1-score": 0.9473684210526315,
+        "support": 10.0
+      },
+      "PFS14": {
+        "precision": 0.9166666666666666,
+        "recall": 1.0,
+        "f1-score": 0.9565217391304348,
+        "support": 11.0
+      },
+      "PFS15": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 10.0
+      },
+      "accuracy": 0.967741935483871,
+      "macro avg": {
+        "precision": 0.9722222222222222,
+        "recall": 0.9666666666666667,
+        "f1-score": 0.9679633867276888,
+        "support": 31.0
+      },
+      "weighted avg": {
+        "precision": 0.9704301075268816,
+        "recall": 0.967741935483871,
+        "f1-score": 0.9675943013213257,
+        "support": 31.0
+      }
+    },
+    "classes": [
+      "NOPFS",
+      "PFS14",
+      "PFS15"
+    ],
+    "confusion_matrix": [
+      [
+        9,
+        1,
+        0
+      ],
+      [
+        0,
+        11,
+        0
+      ],
+      [
+        0,
+        0,
+        10
+      ]
+    ],
+    "features": [
+      "packet_count",
+      "total_bytes",
+      "avg_packet_size",
+      "min_packet_size",
+      "max_packet_size",
+      "capture_duration_seconds",
+      "udp_packet_count",
+      "udp_500_count",
+      "ike_packet_count",
+      "esp_packet_count",
+      "create_child_sa_count",
+      "informational_count",
+      "ike_request_count",
+      "ike_response_count",
+      "ike_bytes",
+      "ike_avg_packet_size",
+      "esp_bytes",
+      "esp_avg_packet_size"
+    ],
+    "model": "RandomForestClassifier",
+    "n_estimators": 300
+  }
+}

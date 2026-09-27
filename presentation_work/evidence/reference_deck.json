@@ -1,0 +1,125 @@
+{
+  "width": 12192000,
+  "height": 6858000,
+  "slides": [
+    {
+      "slide": 1,
+      "texts": [
+        "",
+        "",
+        "\nTITLE PAGE",
+        "SMART INDIA HACKATHON 2026",
+        "Problem Statement ID \u2013 26160\nProblem Statement Title \u2013 AI-Powered IPsec VPN Protocol Analyzer and Security Assessment Framework\nTheme \u2013 Blockchain & Cybersecurity\nPS Category \u2013 Software\nOrganization \u2013 National Technical Research Organisation (NTRO)\nTeam ID \u2013 <Enter Team ID>\nTeam Name \u2013 <Enter Registered Team Name>"
+      ]
+    },
+    {
+      "slide": 2,
+      "texts": [
+        "",
+        "IPsec Sentinel \u2013 AI-Driven IPsec VPN Protocol Analyzer & Security Assessment Framework",
+        "Proposed Solution\nAI-driven platform that inspects captured/live IPsec traffic, auto-identifies the exact protocol configuration, and outputs an automated, explainable security assessment.\nAddresses the gap between raw packet captures and actionable security judgement \u2014 no manual, expert-only Wireshark analysis required.\nNovelty: classifies encrypted ESP traffic type via ML flow-fingerprinting (size/timing/direction patterns) and converts findings into a graded Risk Score + Threat Matrix.",
+        "2",
+        "@SIH Idea submission- Template",
+        "Your Team Name",
+        "1  VPN Testbed &\nTraffic Capture\nStrongSwan tunnels\n+ Wireshark/tcpdump",
+        "2  AI Protocol &\nTraffic Engine\nParses IKE + ESP\nflow features",
+        "3  Security\nAssessment Engine\nCrypto strength,\nPFS, replay checks",
+        "4  Dashboard &\nAuto Report\nRisk Score, Threat\nMatrix, AI Confidence"
+      ]
+    },
+    {
+      "slide": 3,
+      "texts": [
+        "",
+        "TECHNICAL APPROACH",
+        "Tech stack: Python, Scapy/PyShark (parsing), scikit-learn / XGBoost (ML classifier), Flask/FastAPI + React (interactive dashboard)\nTestbed: StrongSwan/Libreswan on Linux VMs (Docker/GNS3) \u2014 Tunnel & Transport mode, AES-128/256, AES-GCM, AES-CBC+HMAC, multiple DH groups, PFS on/off, IPv4 & IPv6\nCapture: Wireshark / tcpdump for IKE negotiation, ESP, AH and control traffic, labelled by configuration and traffic type (VoIP, web, e-mail, video, ICMP)",
+        "3",
+        "@SIH Idea submission- Template",
+        "Your Team Name",
+        "Methodology / Workflow",
+        "1   VPN Testbed\nGeneration\nMulti-config IPsec\ntunnels (StrongSwan)",
+        "2   Traffic\nCapture\nWireshark / tcpdump\nIKE, ESP, AH",
+        "3   Feature\nExtraction\nIKE fields + ESP flow\nstatistics",
+        "4   AI Classification\nEngine\nMode, cipher, DH group,\ntraffic type",
+        "5   Security\nAssessment Engine\nCrypto strength, PFS,\nreplay, key lifetime",
+        "6   Dashboard &\nReports\nRisk Score, Threat\nMatrix, Confidence"
+      ]
+    },
+    {
+      "slide": 4,
+      "texts": [
+        "",
+        "FEASIBILITY AND VIABILITY",
+        "Feasible with an open-source stack (StrongSwan, Scapy, scikit-learn) \u2014 low cost, modular design, buildable in incremental phases\nCore risk: ESP payload is encrypted, so traffic-type inference relies on statistical fingerprinting rather than content \u2014 mitigated by a large, well-labelled testbed",
+        "4",
+        "@SIH Idea submission- Template",
+        "Your Team Name",
+        "Key Risks & Mitigation Strategy",
+        "",
+        "!",
+        "Risk",
+        "Encrypted ESP\npayload",
+        "Statistical flow fingerprinting (packet size, timing,\ndirection) instead of content inspection",
+        "",
+        "!",
+        "Risk",
+        "Diverse real-world\nconfigurations",
+        "Broad synthetic testbed covering modes, ciphers, DH\ngroups, PFS and IPv4/IPv6 combinations",
+        "",
+        "!",
+        "Risk",
+        "False positives in\nAI scoring",
+        "Confidence thresholds + rule-based cross-checks;\nhuman-in-the-loop review for low-confidence cases"
+      ]
+    },
+    {
+      "slide": 5,
+      "texts": [
+        "",
+        "IMPACT AND BENEFITS",
+        "Target users: SOC analysts, government / defense network security teams, cloud & enterprise infra teams, security auditors\nTurns hours of manual Wireshark/IKE analysis into an instant, standardized, explainable security grade for every IPsec deployment",
+        "5",
+        "@SIH Idea submission- Template",
+        "Your Team Name",
+        "Benefits",
+        "",
+        "\u2713",
+        "Faster Assessment",
+        "Minutes instead of hours\nof manual packet review",
+        "",
+        "\u2713",
+        "Standardized Scoring",
+        "Consistent security grade\nacross every deployment",
+        "",
+        "\u2713",
+        "Proactive Risk Detection",
+        "Flags weak DH groups, no\nPFS, outdated ciphers early",
+        "",
+        "\u2713",
+        "Compliance-Ready",
+        "Evidence trail aligned with\nNIST SP 800-77 guidance"
+      ]
+    },
+    {
+      "slide": 6,
+      "texts": [
+        "",
+        "RESEARCH  AND REFERENCES",
+        "RFC 4301 \u2013 Security Architecture for the Internet Protocol (IPsec)\nRFC 7296 \u2013 Internet Key Exchange Protocol Version 2 (IKEv2)\nRFC 4303 / RFC 4302 \u2013 Encapsulating Security Payload (ESP) / Authentication Header (AH)\nNIST SP 800-77 Rev. 1 \u2013 Guide to IPsec VPNs\nStrongSwan and Wireshark official documentation \u2013 IPsec/IKE implementation & packet analysis reference\nPublished research on machine-learning-based encrypted traffic classification (flow-based fingerprinting using packet size, timing and direction features)",
+        "6",
+        "@SIH Idea submission- Template",
+        "Your Team Name",
+        "Reference Categories",
+        "",
+        "Protocol Standards",
+        "RFC 4301, 7296,\n4302, 4303",
+        "",
+        "Government Guidelines",
+        "NIST SP 800-77\nRev. 1",
+        "",
+        "Tools & Research",
+        "StrongSwan, Wireshark,\nML traffic-classification"
+      ]
+    }
+  ]
+}
