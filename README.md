@@ -44,7 +44,7 @@ python server/api_server.py
 
 It exposes `POST /api/analyze/pcap` for raw PCAP/PCAPNG bytes and `POST /api/agent/telemetry` for authenticated, sanitized metadata. Set `VPN_ANALYZER_AGENT_TOKEN` before starting the API to enable telemetry ingestion. The API does not persist data and is not a public cloud deployment.
 
-For optional Groq-assisted gateway report prose, copy `.env.example` to `.env` and set `GROQ_API_KEY` before starting the API. `GROQ_MODEL` defaults to `llama-3.3-70b-versatile`. The key is read only by the Python API and must not be placed in browser code. Gateway findings, evidence coverage, scores, chart data, and configuration recommendations are computed deterministically; Groq may only summarize supplied evidence and explain approved recommendations. PDF export is generated locally and remains available without a Groq key.
+For optional Groq-assisted gateway report prose, copy `.env.example` to `.env` and set `GROQ_API_KEY` before starting the API. `GROQ_MODEL` defaults to `qwen/qwen3.8-27b`. The key is read only by the Python API and must not be placed in browser code. Gateway findings, evidence coverage, scores, chart data, and configuration recommendations are computed deterministically; Groq may only summarize supplied evidence and explain approved recommendations. PDF export is generated locally and remains available without a Groq key.
 
 The VPN Testbed offers **Manual CLI** and **Apply via Agent** modes. Manual mode downloads a generated `swanctl.conf` and shows the exact load/initiate commands. For agent apply, set a random local `VPN_ANALYZER_TESTBED_TOKEN` in `.env`, restart the API, and run the enrolled gateway agent with `--allow-testbed-apply`, for example:
 

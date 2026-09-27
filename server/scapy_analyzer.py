@@ -22,7 +22,7 @@ if str(_PROJECT_ROOT) not in sys.path:
 
 from scapy.all import AH, ESP, ICMP, IP, IPv6, TCP, UDP, rdpcap
 
-HOST = "127.0.0.1"
+HOST = os.environ.get("VPN_ANALYZER_SCAPY_HOST", "127.0.0.1")
 PORT = 8765
 
 

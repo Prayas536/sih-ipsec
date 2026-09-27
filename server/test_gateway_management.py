@@ -511,6 +511,51 @@ class GatewayApiHttpIntegrationTests(unittest.TestCase):
         self.assertEqual(response["error"], "GROQ_API_KEY_NOT_CONFIGURED")
         self.assertNotIn("127.0.0.1", api_server._AI_REPORT_LAST_REQUEST)
 
+    def test_pcap_ai_report_only_sends_sanitized_aggregate_context(self):
+        import api_server
+
+        api_server._AI_REPORT_LAST_REQUEST.clear()
+        narrative = {
+            "executive_summary": "A partial assessment identified one review item.",
+            "technical_interpretation": "The negotiated transforms are described only when observed.",
+            "traffic_interpretation": "The traffic category is an uncertain classifier inference.",
+            "finding_notes": [{"id": "F1", "why_it_matters": "Review the observed PFS state."}],
+        }
+        request_body = {
+            "scenario": {
+                "name": "Private Capture",
+                "organization": "Sensitive Organization",
+                "packets": [{"payload": "never forward raw payload"}],
+                "sa": {"ikeVersion": "IKEv2", "initiatorSpi": "0x12345678"},
+                "features": {"packetCount": 12, "calculatedEntropy": 7.4},
+            },
+            "scorecard": {
+                "totalScore": 70,
+                "rating": "Moderate",
+                "assessmentStatus": "PARTIAL",
+                "evidenceCoveragePercent": 75,
+                "findings": [{"severity": "Medium", "parameter": "PFS", "detectedValue": "Disabled"}],
+            },
+            "prediction": {"predictedClass": "Web", "confidenceScore": 61},
+        }
+
+        with patch.dict("os.environ", {"GROQ_API_KEY": "test-key"}), patch(
+            "api_server.generate_groq_pcap_narrative", return_value=narrative
+        ) as generate:
+            status, response = self._http_request("POST", "/api/reports/pcap-narrative", request_body)
+
+        self.assertEqual(status, 200)
+        self.assertEqual(response["source"], "GROQ_LLM")
+        self.assertEqual(response["narrative"], narrative)
+        context = generate.call_args.args[0]
+        serialized_context = json.dumps(context)
+        self.assertNotIn("Private Capture", serialized_context)
+        self.assertNotIn("Sensitive Organization", serialized_context)
+        self.assertNotIn("never forward raw payload", serialized_context)
+        self.assertNotIn("0x12345678", serialized_context)
+        self.assertNotIn("packets", serialized_context)
+        self.assertEqual(context["findings"][0]["id"], "F1")
+
     def test_gateway_aes_cbc_is_a_hardening_note_not_a_vulnerability_claim(self):
         import api_server
 

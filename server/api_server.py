@@ -23,11 +23,10 @@ from typing import Any
 
 from ai_reporting import (
     GroqReportError,
-    build_capture_ai_context,
     build_gateway_ai_context,
+    build_pcap_ai_context,
+    generate_groq_pcap_narrative,
     generate_groq_narrative,
-    llm_configured,
-    llm_provider_details,
     load_project_env,
 )
 from correlation import correlate_spi
@@ -41,6 +40,7 @@ load_project_env()
 HOST = os.environ.get("VPN_ANALYZER_API_HOST", "0.0.0.0")
 PORT = int(os.environ.get("VPN_ANALYZER_API_PORT", "8770"))
 MAX_BODY_BYTES = 100 * 1024 * 1024
+MAX_PCAP_REPORT_CONTEXT_BYTES = 64 * 1024
 AGENT_TOKEN = os.environ.get("VPN_ANALYZER_AGENT_TOKEN")
 REPOSITORY = AnalysisRepository(os.environ.get("VPN_ANALYZER_DATABASE", "data/analyzer.sqlite3"))
 AI_REPORT_COOLDOWN_SECONDS = 15
@@ -418,16 +418,23 @@ class ApiHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         content_length = int(self.headers.get("Content-Length", "0"))
+        path = self.path.split("?")[0].rstrip("/")
         if content_length > MAX_BODY_BYTES:
             json_response(self, 413, {"error": "INVALID_CONTENT_LENGTH"})
             return
+        if path == "/api/reports/pcap-narrative" and content_length > MAX_PCAP_REPORT_CONTEXT_BYTES:
+            json_response(self, 413, {"error": "REPORT_CONTEXT_TOO_LARGE"})
+            return
 
         body = self.rfile.read(content_length) if content_length > 0 else b""
-        path = self.path.split("?")[0].rstrip("/")
 
         # 1. PCAP Analysis
         if path == "/api/analyze/pcap":
             self._analyze_pcap(body)
+            return
+
+        if path == "/api/reports/pcap-narrative":
+            self._generate_pcap_report_narrative(body)
             return
 
         # 2. Gateway Registration
@@ -478,9 +485,6 @@ class ApiHandler(BaseHTTPRequestHandler):
             return
 
         # 6. Legacy Telemetry Ingestion
-        if path == "/api/reports/pcap-ai-narrative":
-            self._generate_capture_ai_report(body)
-            return
         if path == "/api/agent/telemetry":
             self._ingest_metadata(body)
             return
@@ -1164,10 +1168,8 @@ echo "  vpn-analyzer-agent enroll --server $SERVER_URL --token <ONE_TIME_TOKEN>"
         if report is None:
             json_response(self, 404, {"error": "GATEWAY_NOT_FOUND"})
             return
-        if not llm_configured():
-            provider = llm_provider_details()[0]
-            error = "LLM7_API_KEY_NOT_CONFIGURED" if provider == "llm7" else "OPENAI_API_KEY_NOT_CONFIGURED" if provider == "openai" else "GEMINI_API_KEY_NOT_CONFIGURED" if provider == "gemini" else "GROQ_API_KEY_NOT_CONFIGURED"
-            json_response(self, 503, {"error": error})
+        if not os.environ.get("GROQ_API_KEY", "").strip():
+            json_response(self, 503, {"error": "GROQ_API_KEY_NOT_CONFIGURED"})
             return
 
         client_ip = self.client_address[0] if self.client_address else "unknown"
@@ -1177,17 +1179,17 @@ echo "  vpn-analyzer-agent enroll --server $SERVER_URL --token <ONE_TIME_TOKEN>"
             if now - last_request < AI_REPORT_COOLDOWN_SECONDS:
                 json_response(self, 429, {"error": "AI_REPORT_RATE_LIMITED"})
                 return
+            _AI_REPORT_LAST_REQUEST[client_ip] = now
+
         try:
             narrative = generate_groq_narrative(build_gateway_ai_context(report))
         except GroqReportError as exc:
             json_response(self, exc.status, {"error": exc.code})
             return
-        with _AI_REPORT_RATE_LOCK:
-            _AI_REPORT_LAST_REQUEST[client_ip] = time.monotonic()
 
         json_response(self, 200, {
-            "source": f"{llm_provider_details()[0].upper()}_LLM",
-            "model": llm_provider_details()[3],
+            "source": "GROQ_LLM",
+            "model": os.environ.get("GROQ_MODEL", "qwen/qwen3.8-27b"),
             "reportGeneratedAt": report["reportGeneratedAt"],
             "score": report["securityAssessment"]["score"],
             "findings": report["securityAssessment"]["findings"],
@@ -1197,21 +1199,18 @@ echo "  vpn-analyzer-agent enroll --server $SERVER_URL --token <ONE_TIME_TOKEN>"
             "narrative": narrative,
         })
 
-    def _generate_capture_ai_report(self, body: bytes) -> None:
-        """Generate constrained AI prose for an already-computed PCAP report."""
-        if not llm_configured():
-            provider = llm_provider_details()[0]
-            error = "LLM7_API_KEY_NOT_CONFIGURED" if provider == "llm7" else "OPENAI_API_KEY_NOT_CONFIGURED" if provider == "openai" else "GEMINI_API_KEY_NOT_CONFIGURED" if provider == "gemini" else "GROQ_API_KEY_NOT_CONFIGURED"
-            json_response(self, 503, {"error": error})
+    def _generate_pcap_report_narrative(self, body: bytes) -> None:
+        if not os.environ.get("GROQ_API_KEY", "").strip():
+            json_response(self, 503, {"error": "GROQ_API_KEY_NOT_CONFIGURED"})
             return
+
         try:
-            report = json.loads(body.decode("utf-8"))
-        except (UnicodeDecodeError, json.JSONDecodeError):
-            json_response(self, 400, {"error": "INVALID_REPORT_PAYLOAD"})
+            report_context = json.loads(body.decode("utf-8"))
+            context = build_pcap_ai_context(report_context)
+        except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError):
+            json_response(self, 400, {"error": "INVALID_REPORT_CONTEXT"})
             return
-        if not isinstance(report, dict):
-            json_response(self, 400, {"error": "INVALID_REPORT_PAYLOAD"})
-            return
+
         client_ip = self.client_address[0] if self.client_address else "unknown"
         now = time.monotonic()
         with _AI_REPORT_RATE_LOCK:
@@ -1219,16 +1218,17 @@ echo "  vpn-analyzer-agent enroll --server $SERVER_URL --token <ONE_TIME_TOKEN>"
             if now - last_request < AI_REPORT_COOLDOWN_SECONDS:
                 json_response(self, 429, {"error": "AI_REPORT_RATE_LIMITED"})
                 return
+            _AI_REPORT_LAST_REQUEST[client_ip] = now
+
         try:
-            narrative = generate_groq_narrative(build_capture_ai_context(report))
+            narrative = generate_groq_pcap_narrative(context)
         except GroqReportError as exc:
             json_response(self, exc.status, {"error": exc.code})
             return
-        with _AI_REPORT_RATE_LOCK:
-            _AI_REPORT_LAST_REQUEST[client_ip] = time.monotonic()
+
         json_response(self, 200, {
-            "source": f"{llm_provider_details()[0].upper()}_LLM",
-            "model": llm_provider_details()[3],
+            "source": "GROQ_LLM",
+            "model": os.environ.get("GROQ_MODEL", "qwen/qwen3.8-27b"),
             "narrative": narrative,
         })
 

@@ -13,20 +13,29 @@ export interface CaptureAiNarrative {
 
 export function buildCaptureAiReportPayload(scorecard: SecurityScorecard, prediction: AiPrediction) {
   return {
-    score: { value: scorecard.totalScore, evidence_coverage_percent: scorecard.evidenceCoveragePercent, status: scorecard.assessmentStatus },
-    traffic: { classification: prediction.predictedClass, probability_percent: prediction.confidenceScore, source: prediction.source ?? 'UNKNOWN' },
-    findings: scorecard.findings.filter(finding => finding.severity !== 'Pass'),
-    limitations: [
-      scorecard.assessmentStatus !== 'COMPLETE' ? 'Assessment evidence is incomplete; unknown controls are not treated as secure.' : '',
-      prediction.status === 'NOT_DETERMINABLE' ? 'Traffic classification was not determinable from the available flow data.' : '',
-    ].filter(Boolean),
+    // The server allowlists only aggregate score, finding, and flow evidence.
+    // No packet bytes, addresses, SPIs, capture names, or user identifiers are sent.
+    scenario: { sa: {}, features: {} },
+    scorecard: {
+      totalScore: scorecard.totalScore,
+      rating: scorecard.rating,
+      assessmentStatus: scorecard.assessmentStatus,
+      evidenceCoveragePercent: scorecard.evidenceCoveragePercent,
+      findings: scorecard.findings.filter(finding => finding.severity !== 'Pass'),
+    },
+    prediction: {
+      predictedClass: prediction.predictedClass,
+      confidenceScore: prediction.confidenceScore,
+      source: prediction.source ?? 'UNKNOWN',
+      status: prediction.status,
+    },
   };
 }
 
 export async function generateCaptureAiNarrative(scorecard: SecurityScorecard, prediction: AiPrediction): Promise<CaptureAiNarrative> {
   let response: Response;
   try {
-    response = await fetch(`${getApiBaseUrl()}/api/reports/pcap-ai-narrative`, {
+    response = await fetch(`${getApiBaseUrl()}/api/reports/pcap-narrative`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(buildCaptureAiReportPayload(scorecard, prediction)),
     });
