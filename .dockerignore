@@ -9,5 +9,11 @@ __pycache__
 *.py[cod]
 data
 backend/data
-feature_extractor
+feature_extractor/*
+!feature_extractor/extractor.py
+!feature_extractor/ml/
+feature_extractor/ml/*
+!feature_extractor/ml/models/
+feature_extractor/ml/models/*
+!feature_extractor/ml/models/*.joblib
 pcap_factory
