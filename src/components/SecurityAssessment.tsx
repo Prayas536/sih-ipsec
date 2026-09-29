@@ -1,21 +1,9 @@
 import React from 'react';
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Cpu,
-  Eye,
-  Info,
-  Radar,
-  ShieldAlert,
-  ShieldCheck,
-  Wrench,
-} from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Radar, ShieldAlert, ShieldCheck, Wrench } from 'lucide-react';
 import {
   GatewayCorrelationResult,
   GatewayTelemetrySummary,
   IkeSecurityAssociation,
-  MLPredictions,
-  MLSecurityFinding,
   SecurityFinding,
   SecurityScorecard,
 } from '../types';
@@ -26,8 +14,6 @@ interface SecurityAssessmentProps {
   sa: IkeSecurityAssociation;
   gatewayTelemetry?: GatewayTelemetrySummary;
   correlation?: GatewayCorrelationResult;
-  mlPredictions?: MLPredictions | null;
-  mlSecurityFindings?: MLSecurityFinding[];
 }
 
 const severityBadge = (severity: string) => {
@@ -51,17 +37,11 @@ const evidenceBadge = (label: string, tone: 'observed' | 'ml' | 'gap' | 'pass') 
   return <span className={`rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${cls}`}>{label}</span>;
 };
 
-const pfsLabel: Record<string, string> = {
-  NOPFS: 'Predicted disabled',
-  PFS14: 'Predicted enabled: DH Group 14',
-  PFS15: 'Predicted enabled: DH Group 15',
-};
-
 const DetailRow = ({ label, value, reference, tone = 'observed' }: { label: string; value: React.ReactNode; reference: string; tone?: 'observed' | 'gap' | 'pass' }) => (
-  <div className="grid gap-2 border-b border-slate-100 px-4 py-3 last:border-b-0 md:grid-cols-[220px_minmax(0,1fr)_260px]">
+  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-1 border-b border-slate-100 px-4 py-3 last:border-b-0 md:grid-cols-[220px_minmax(0,1fr)]">
     <div className="font-semibold text-slate-800">{label}</div>
-    <div className="min-w-0 break-words text-slate-900">{value}</div>
-    <div className="text-slate-500">{tone === 'gap' ? evidenceBadge('Needs evidence', 'gap') : evidenceBadge('PCAP observed', tone)} <span className="ml-2">{reference}</span></div>
+    <div className="min-w-0 break-words text-right text-slate-900 md:text-left">{value}</div>
+    <div className="col-span-2 text-[11px] text-slate-500">{tone === 'gap' ? evidenceBadge('Needs evidence', 'gap') : evidenceBadge('PCAP observed', tone)} <span className="ml-2">{reference}</span></div>
   </div>
 );
 
@@ -85,16 +65,10 @@ export const SecurityAssessment: React.FC<SecurityAssessmentProps> = ({
   sa,
   gatewayTelemetry,
   correlation,
-  mlPredictions,
-  mlSecurityFindings,
 }) => {
   const observations = sa.observations;
   const riskFindings = scorecard.findings.filter((finding) => finding.penalty > 0);
   const evidenceGaps = scorecard.findings.filter((finding) => finding.severity !== 'Pass' && finding.penalty === 0);
-  const pfsPrediction = mlPredictions?.pfs_group;
-  const pfsConfidence = pfsPrediction?.confidence === null || pfsPrediction?.confidence === undefined
-    ? null
-    : `${(pfsPrediction.confidence * 100).toFixed(1)}%`;
   const observedPfs = sa.pfsEnabled === null ? 'Not determined from capture' : sa.pfsEnabled ? 'Enabled' : 'Disabled';
 
   return (
@@ -143,66 +117,6 @@ export const SecurityAssessment: React.FC<SecurityAssessmentProps> = ({
           </div>
         </div>
       </section>
-
-      <section className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-        <div className="flex items-start gap-3">
-          <Info className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
-          <div>
-            <h3 className="text-sm font-bold text-amber-950">Why PFS says "not observed"</h3>
-            <p className="mt-1 text-sm leading-6 text-amber-950/80">
-              The capture does not expose enough Child-SA rekey or gateway state evidence to prove PFS. The deterministic audit therefore keeps PFS as <strong>not determined from capture</strong>. The ML model may still predict PFS state from packet/flow features, but that is a prediction, not packet-observed proof.
-            </p>
-          </div>
-        </div>
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          <div className="rounded-lg border border-amber-200 bg-white p-3">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-amber-800"><Eye className="h-4 w-4" /> Packet evidence</div>
-            <div className="mt-2 text-lg font-bold text-slate-900">{observedPfs}</div>
-            <p className="mt-1 text-xs leading-5 text-slate-500">Needs CREATE_CHILD_SA evidence, explicit Child-SA config, or gateway telemetry to confirm.</p>
-          </div>
-          <div className="rounded-lg border border-purple-200 bg-white p-3">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-purple-700"><Cpu className="h-4 w-4" /> ML prediction</div>
-            <div className="mt-2 text-lg font-bold text-slate-900">{pfsPrediction ? pfsLabel[pfsPrediction.prediction] || pfsPrediction.prediction : 'Unavailable'}</div>
-            <p className="mt-1 text-xs leading-5 text-slate-500">{pfsConfidence ? `Model confidence: ${pfsConfidence}. Treat this as inference until confirmed by config or telemetry.` : 'No PFS model result returned for this capture.'}</p>
-          </div>
-        </div>
-      </section>
-
-      {mlSecurityFindings && mlSecurityFindings.length > 0 && (
-        <section className="rounded-xl border border-slate-200 bg-white shadow-xs">
-          <div className="flex flex-col gap-3 border-b border-slate-200 p-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <Cpu className="h-4 w-4 text-blue-600" />
-                <h3 className="text-sm font-bold text-slate-900">ML-inferred security findings</h3>
-                {evidenceBadge('ML predicted', 'ml')}
-              </div>
-              <p className="mt-1 text-xs text-slate-500">Separated from packet-observed audit results so predictions do not look like decoded facts.</p>
-            </div>
-            <div className="text-xs text-slate-500">Findings: <strong className="text-slate-900">{mlSecurityFindings.length}</strong></div>
-          </div>
-          <div className="grid gap-3 p-4 xl:grid-cols-2">
-            {mlSecurityFindings.map((finding) => (
-              <article key={finding.id} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className={`rounded border px-2 py-0.5 text-[10px] font-bold uppercase ${severityBadge(finding.severity)}`}>{finding.severity}</span>
-                    <h4 className="text-sm font-bold text-slate-900">{finding.title}</h4>
-                  </div>
-                  <span className="text-xs font-semibold text-slate-500">{(finding.confidence * 100).toFixed(1)}% {finding.confidence_label}</span>
-                </div>
-                <p className="mt-2 text-sm leading-6 text-slate-700">{finding.message}</p>
-                <p className="mt-1 text-xs leading-5 text-slate-500">{finding.detail}</p>
-                {finding.recommendation && (
-                  <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-700">
-                    <strong className="text-slate-900">Recommendation:</strong> {finding.recommendation}
-                  </div>
-                )}
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
         <div className="rounded-xl border border-slate-200 bg-white shadow-xs">

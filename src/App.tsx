@@ -7,22 +7,16 @@ import { addSecurityAssociationEvidence } from './analysis/evidence';
 import { Header, AppNavView } from './components/Header';
 import { DashboardView } from './components/DashboardView';
 import { ReportsView } from './components/ReportsView';
-import { MetricCards } from './components/MetricCards';
-import { AssessmentOverview } from './components/AssessmentOverview';
-import { AiTrafficAnalysis } from './components/AiTrafficAnalysis';
-import { SecurityAssessment } from './components/SecurityAssessment';
-import { PacketViewer } from './components/PacketViewer';
+import { AnalysisResults } from './components/AnalysisResults';
 import { GatewaysManager } from './components/GatewaysManager';
 import { GatewayDetailsModal } from './components/GatewayDetailsModal';
 import { AddGatewayModal } from './components/AddGatewayModal';
+import { HelpModal } from './components/HelpModal';
 import { CommandPalette, PipelineStepper, StatusDrawer, useThemePreference } from './components/workstation/WorkstationTools';
-import { CaptureProfile } from './components/workstation/CaptureProfile';
 import { fetchGateways } from './utils/gatewayClient';
 import type { AssessmentReportKind } from './utils/assessmentReport';
 import {
   Shield,
-  ShieldAlert,
-  Cpu,
   Terminal,
   Sliders,
   CheckCircle2,
@@ -44,7 +38,6 @@ export default function App() {
   const { theme, setTheme } = useThemePreference();
   const [scenarios, setScenarios] = useState<VpnCaptureScenario[]>([]);
   const [selectedScenario, setSelectedScenario] = useState<VpnCaptureScenario | null>(null);
-  const [activeTab, setActiveTab] = useState<'SECURITY' | 'AI_TRAFFIC' | 'PACKETS'>('SECURITY');
 
   // Top-level view navigation
   const [currentView, setCurrentView] = useState<AppNavView>('ANALYSIS');
@@ -72,10 +65,7 @@ export default function App() {
   const [analysisStage, setAnalysisStage] = useState(0);
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [isStatusOpen, setIsStatusOpen] = useState(false);
-  const [technicalMode, setTechnicalMode] = useState(() => localStorage.getItem('vpn-analysis-mode') === 'technical');
-
-  useEffect(() => { localStorage.setItem('vpn-analysis-mode', technicalMode ? 'technical' : 'simple'); }, [technicalMode]);
-
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const showToast = useCallback((msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
@@ -236,7 +226,7 @@ export default function App() {
     else if (action === 'gateways') setCurrentView('GATEWAYS');
     else if (action === 'testbed') setIsTestbedOpen(true);
     else if (action === 'theme') setTheme(theme === 'dark' ? 'light' : 'dark');
-    else if (action === 'help') showToast('Source badges identify observed, inferred, telemetry, or rule-derived results.');
+    else if (action === 'help') setIsHelpOpen(true);
     else if (action === 'upload') document.getElementById('dropzone-file')?.click();
   };
 
@@ -318,7 +308,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
+    <div className="app-shell min-h-screen text-slate-900 flex flex-col font-sans">
 
       {/* Toast Notification */}
       {toastMessage && (
@@ -347,10 +337,11 @@ export default function App() {
         onThemeChange={setTheme}
         onOpenCommandPalette={() => setIsCommandOpen(true)}
         onOpenStatus={() => setIsStatusOpen(true)}
+        onOpenHelp={() => setIsHelpOpen(true)}
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 space-y-5">
+      <main className="app-main flex-1 w-full mx-auto px-4 sm:px-6 space-y-5">
 
         {/* ─── DASHBOARD VIEW ─── */}
         {currentView === 'DASHBOARD' && (
@@ -407,32 +398,41 @@ export default function App() {
           <>
             {/* If no real file has been uploaded yet, show Clean Upload & Testbed Hub */}
             {!selectedScenario ? (
-              <div className="space-y-5 py-2">
+              <div className="analysis-empty space-y-5">
+
+                <div className="analysis-intro">
+                  <div>
+                    <span className="analysis-intro-kicker">SIH 2026 · Problem Statement 26160</span>
+                    <h1>IPsec Capture Workbench</h1>
+                    <p>Inspect what the packet capture proves, review rule-based risks, then compare separate model estimates.</p>
+                  </div>
+                  <span className="analysis-intro-meta">NTRO · Network security analysis</span>
+                </div>
 
                 {/* Main Upload Zone */}
                 <div
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
-                  className={`border-2 border-dashed rounded-lg p-10 text-center transition-all flex flex-col items-center justify-center ${
+                  className={`upload-dropzone border-2 border-dashed p-10 text-center transition-all flex flex-col items-center justify-center ${
                     isDragging
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-slate-300 bg-white hover:border-slate-400 hover:bg-slate-50'
+                      ? 'is-dragging'
+                      : ''
                   }`}
                 >
-                  <div className="w-12 h-12 rounded-lg bg-slate-100 border border-slate-200 text-slate-400 flex items-center justify-center mb-4">
+                  <div className="upload-mark flex items-center justify-center mb-4">
                     <UploadCloud className="w-6 h-6" />
                   </div>
 
-                  <h2 className="text-base font-semibold text-slate-900 mb-1">
-                    Upload Network Capture
+                  <h2 className="text-lg font-bold text-slate-900 mb-1">
+                    Start with a packet capture
                   </h2>
-                  <p className="text-sm text-slate-500 max-w-lg mx-auto mb-6 leading-relaxed">
-                    Drop a <code className="font-mono bg-slate-100 px-1 rounded text-xs">.pcap</code> or <code className="font-mono bg-slate-100 px-1 rounded text-xs">.pcapng</code> file here to analyze real IKE handshakes and ESP traffic flows.
+                  <p className="text-xs text-slate-500 max-w-lg mx-auto mb-6 leading-relaxed">
+                    Drop a <code className="font-mono bg-white px-1 rounded text-[11px]">.pcap</code> or <code className="font-mono bg-white px-1 rounded text-[11px]">.pcapng</code> file here, or browse your device.
                   </p>
 
                   {/* Mode 1 vs Mode 3 Gateway Correlation Selector */}
-                  <div className="mb-6 w-full max-w-md mx-auto p-3.5 rounded-lg bg-slate-50 border border-slate-200 text-left">
+                  <div className="mb-6 w-full max-w-md mx-auto p-3.5 rounded-lg bg-white/80 border border-slate-200 text-left">
                     <div className="flex items-center justify-between mb-2">
                       <label htmlFor="gateway-mode-select" className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
                         <Server className="w-3.5 h-3.5 text-blue-600" />
@@ -469,7 +469,7 @@ export default function App() {
                   <div className="flex flex-wrap items-center justify-center gap-2.5">
                     <label
                       htmlFor="dropzone-file"
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm cursor-pointer transition-colors flex items-center gap-2"
+                      className="upload-primary px-4 py-2 text-white text-xs font-semibold rounded-lg shadow-sm cursor-pointer transition-colors flex items-center gap-2"
                     >
                       <FileCheck className="w-3.5 h-3.5" />
                       <span>{selectedGatewayId ? 'Select .PCAP & Correlate' : 'Select .PCAP File'}</span>
@@ -505,10 +505,10 @@ export default function App() {
                 </div>
 
                 {/* Capture Command Reference */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="analysis-tool-row">
 
                   {/* Linux tcpdump */}
-                  <div className="p-4 rounded-lg bg-white border border-slate-200 shadow-xs space-y-2">
+                  <div className="analysis-tool-panel p-4 space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-slate-800 text-xs font-semibold">
                         <Terminal className="w-3.5 h-3.5 text-slate-500" />
@@ -531,7 +531,7 @@ export default function App() {
                   </div>
 
                   {/* Wireshark */}
-                  <div className="p-4 rounded-lg bg-white border border-slate-200 shadow-xs space-y-2">
+                  <div className="analysis-tool-panel p-4 space-y-2">
                     <div className="flex items-center gap-2 text-slate-800 text-xs font-semibold">
                       <Code2 className="w-3.5 h-3.5 text-slate-500" />
                       <span>Capture in Wireshark</span>
@@ -550,7 +550,7 @@ export default function App() {
               /* When a capture file is loaded — full live inspection interface */
               <>
                 {/* Active Context Banner */}
-                <div className="bg-white border border-slate-200 rounded-lg p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-xs">
+                <div className="capture-context bg-white border border-slate-200 rounded-lg p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-xs">
                   <div>
                     <div className="flex items-center gap-2 flex-wrap mb-1">
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 font-mono uppercase">
@@ -569,10 +569,6 @@ export default function App() {
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0 flex-wrap">
-                    <div className="flex rounded-md border border-slate-200 p-0.5 text-[11px]" aria-label="Analysis detail mode">
-                      <button onClick={() => setTechnicalMode(false)} className={`rounded px-2 py-1 ${!technicalMode ? 'bg-slate-100 font-semibold text-slate-800' : 'text-slate-500'}`}>Simple</button>
-                      <button onClick={() => setTechnicalMode(true)} className={`rounded px-2 py-1 ${technicalMode ? 'bg-slate-100 font-semibold text-slate-800' : 'text-slate-500'}`}>Technical</button>
-                    </div>
                     {/* Mode 3 Gateway Switcher for loaded capture */}
                     {availableGateways.length > 0 && (
                       <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs">
@@ -610,83 +606,13 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Metric Cards */}
                 {scorecard && aiPrediction && (
-                  <MetricCards
-                    sa={selectedScenario.sa}
-                    scorecard={scorecard}
-                    aiPrediction={aiPrediction}
-                    actualTrafficType={selectedScenario.actualTrafficType}
-                  />
-                )}
-
-                {scorecard && aiPrediction && (
-                  <AssessmentOverview
+                  <AnalysisResults
                     scenario={selectedScenario}
                     scorecard={scorecard}
                     prediction={aiPrediction}
-                    onOpenReport={() => openReport()}
                   />
                 )}
-
-                <CaptureProfile sa={selectedScenario.sa} technical={technicalMode} />
-
-                {/* Analysis Navigation Tabs */}
-                <div className="flex items-center justify-between border-b border-slate-200 pb-0">
-                  <div className="flex items-center gap-0">
-                    {[
-                      { key: 'SECURITY' as const, label: 'Security Assessment', icon: ShieldAlert },
-                      { key: 'AI_TRAFFIC' as const, label: 'AI Traffic Analysis', icon: Cpu },
-                      { key: 'PACKETS' as const, label: `Packets (${selectedScenario.packets.length})`, icon: Terminal },
-                    ].map(({ key, label, icon: Icon }) => (
-                      <button
-                        key={key}
-                        id={`tab-btn-${key.toLowerCase()}`}
-                        onClick={() => setActiveTab(key)}
-                        className={`inline-flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors cursor-pointer -mb-px ${
-                          activeTab === key
-                            ? 'border-blue-600 text-blue-600 bg-white'
-                            : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-                        }`}
-                      >
-                        <Icon className="w-3.5 h-3.5" />
-                        <span>{label}</span>
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 pb-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    <span>Live Analysis Active</span>
-                  </div>
-                </div>
-
-                {/* Tab Content */}
-                <div className="pt-1">
-                  {activeTab === 'SECURITY' && scorecard && (
-                    <SecurityAssessment
-                      scorecard={scorecard}
-                      sa={selectedScenario.sa}
-                      gatewayTelemetry={selectedScenario.gatewayTelemetry}
-                      correlation={selectedScenario.correlation}
-                      mlPredictions={selectedScenario.mlPredictions}
-                      mlSecurityFindings={selectedScenario.mlSecurityFindings}
-                    />
-                  )}
-
-                  {activeTab === 'AI_TRAFFIC' && aiPrediction && (
-                    <AiTrafficAnalysis
-                      features={selectedScenario.features}
-                      prediction={aiPrediction}
-                      mlPredictions={selectedScenario.mlPredictions}
-                      mlWarning={selectedScenario.mlWarning}
-                    />
-                  )}
-
-                  {activeTab === 'PACKETS' && (
-                    <PacketViewer packets={selectedScenario.packets} />
-                  )}
-                </div>
               </>
             )}
           </>
@@ -697,6 +623,7 @@ export default function App() {
       <PipelineStepper active={isAnalyzing} stage={analysisStage} />
       <CommandPalette open={isCommandOpen} onClose={() => setIsCommandOpen(false)} onAction={handleCommand} />
       <StatusDrawer open={isStatusOpen} onClose={() => setIsStatusOpen(false)} />
+      <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
 
       {/* Footer */}
       <footer className="border-t border-slate-200 bg-white py-3 px-6">

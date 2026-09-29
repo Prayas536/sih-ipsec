@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Command, Shield, Upload, Sliders, Activity } from 'lucide-react';
+import { Command, Shield, Upload, Sliders, Activity, CircleHelp } from 'lucide-react';
 import { ThemeMenu, ThemePreference } from './workstation/WorkstationTools';
 import { VpnCaptureScenario } from '../types';
 
@@ -20,6 +20,7 @@ interface HeaderProps {
   onThemeChange: (theme: ThemePreference) => void;
   onOpenCommandPalette: () => void;
   onOpenStatus: () => void;
+  onOpenHelp: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -37,6 +38,7 @@ export const Header: React.FC<HeaderProps> = ({
   onThemeChange,
   onOpenCommandPalette,
   onOpenStatus,
+  onOpenHelp,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -48,13 +50,13 @@ export const Header: React.FC<HeaderProps> = ({
   ];
 
   return (
-    <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
+    <header className="header-shell border-b sticky top-0 z-30 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-14">
           
           {/* Brand / Logo */}
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-md bg-blue-600 flex items-center justify-center text-white shrink-0 shadow-xs">
+            <div className="header-brand-mark w-8 h-8 rounded-md flex items-center justify-center text-white shrink-0 shadow-xs">
               <Shield className="w-4 h-4" />
             </div>
             <div className="flex items-center gap-2">
@@ -100,9 +102,12 @@ export const Header: React.FC<HeaderProps> = ({
           </nav>
 
           {/* Right Utility Actions */}
-          <div className="flex items-center gap-2">
+          <div className="header-utilities flex items-center gap-2">
+            <button onClick={onOpenHelp} className="header-help-button inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-semibold" aria-label="Open workspace help">
+              <CircleHelp className="h-4 w-4 text-teal-700" /><span>Help</span>
+            </button>
             <button onClick={onOpenCommandPalette} className="hidden xl:inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1.5 text-xs text-slate-500 hover:bg-slate-50" aria-label="Open command palette"><Command className="h-3.5 w-3.5" /><span>Command</span><kbd className="ml-1 text-[10px]">⌘K</kbd></button>
-            <ThemeMenu theme={theme} setTheme={onThemeChange} />
+            <div className="header-theme-menu"><ThemeMenu theme={theme} setTheme={onThemeChange} /></div>
             {/* Quick PCAP Upload Button */}
             <input
               type="file"
@@ -136,6 +141,18 @@ export const Header: React.FC<HeaderProps> = ({
             <button onClick={onOpenStatus} className="flex items-center gap-1.5 pl-2 border-l border-slate-200 text-[11px] text-slate-500 hover:text-slate-800" title="Open system status"><Activity className="h-3.5 w-3.5 text-slate-400" /><span className="w-2 h-2 rounded-full bg-slate-400" /><span className="hidden sm:inline">System status</span></button>
           </div>
         </div>
+        <nav aria-label="Primary navigation" className="grid grid-cols-4 border-t border-slate-100 py-1 lg:hidden">
+          {navItems.map((item) => (
+            <button
+              aria-current={currentView === item.id ? 'page' : undefined}
+              className={`min-h-10 px-1 text-[11px] font-semibold ${currentView === item.id ? 'text-teal-800' : 'text-slate-500'}`}
+              key={item.id}
+              onClick={() => onViewChange?.(item.id)}
+            >
+              {item.id === 'ANALYSIS' ? 'Analysis' : item.label}{item.badge ? ` · ${item.badge}` : ''}
+            </button>
+          ))}
+        </nav>
       </div>
     </header>
   );
