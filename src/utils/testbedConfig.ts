@@ -12,7 +12,7 @@ export type TestbedSettings = {
   authMethod: 'psk' | 'pubkey';
   localTs: string;
   remoteTs: string;
-  trafficType: 'VoIP / Audio Call' | 'Video Streaming' | 'Web Browsing / HTTPS' | 'Bulk Data Transfer (DB/FTP)';
+  trafficType: 'VoIP' | 'WhatsApp' | 'Email' | 'Web' | 'Video' | 'ICMP' | 'File Transfer';
 };
 
 const dhSuffix: Record<TestbedSettings['dhGroup'], string> = {

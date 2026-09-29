@@ -42,11 +42,13 @@ export interface ParsedProposal {
 }
 
 export type TrafficCategory = 
-  | 'VoIP / Audio Call'
-  | 'Video Streaming'
-  | 'Web Browsing / HTTPS'
-  | 'Bulk Data Transfer (DB/FTP)'
-  | 'Telemetry / Heartbeat (ICMP)'
+  | 'VoIP'
+  | 'WhatsApp'
+  | 'Email'
+  | 'Web'
+  | 'Video'
+  | 'ICMP'
+  | 'File Transfer'
   | 'Live Real Capture'
   | 'INSUFFICIENT_DATA';
 

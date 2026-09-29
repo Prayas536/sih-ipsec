@@ -605,7 +605,7 @@ class GatewayApiHttpIntegrationTests(unittest.TestCase):
             "authMethod": "psk",
             "localTs": "172.20.0.2/32",
             "remoteTs": "172.20.0.3/32",
-            "trafficType": "Video Streaming",
+            "trafficType": "Video",
         }
 
         with patch.dict("os.environ", {"VPN_ANALYZER_TESTBED_TOKEN": control_token}):

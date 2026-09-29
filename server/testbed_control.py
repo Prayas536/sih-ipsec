@@ -12,10 +12,13 @@ ALLOWED_CIPHERS = {"AES-256-GCM", "AES-128-GCM", "AES-256-CBC", "3DES-CBC"}
 ALLOWED_DH_GROUPS = {2, 5, 14, 19, 20}
 ALLOWED_AUTH = {"psk", "pubkey"}
 ALLOWED_TRAFFIC = {
-    "VoIP / Audio Call",
-    "Video Streaming",
-    "Web Browsing / HTTPS",
-    "Bulk Data Transfer (DB/FTP)",
+    "VoIP",
+    "WhatsApp",
+    "Email",
+    "Web",
+    "Video",
+    "ICMP",
+    "File Transfer",
 }
 SAFE_ID_RE = re.compile(r"^[A-Za-z0-9_.@:+-]{1,128}$")
 SAFE_NAME_RE = re.compile(r"^[a-z][a-z0-9_]{2,47}$")

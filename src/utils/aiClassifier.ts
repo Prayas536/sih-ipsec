@@ -1,5 +1,93 @@
 import { AiPrediction, EspTrafficFeatures, TrafficCategory } from '../types';
 
+type WorkloadCategory = Exclude<TrafficCategory, 'Live Real Capture' | 'INSUFFICIENT_DATA'>;
+
+type WorkloadModelClass = {
+  category: WorkloadCategory;
+  centroid: number[];
+  spread: number[];
+};
+
+const FEATURE_NAMES = [
+  'duration',
+  'packet_count',
+  'total_bytes',
+  'mean_packet_size',
+  'std_packet_size',
+  'min_packet_size',
+  'max_packet_size',
+  'mean_interarrival',
+  'packet_rate',
+  'byte_rate',
+  'flow_symmetry',
+] as const;
+
+const FEATURE_MEANS = [
+  3.522338,
+  6.836589,
+  13.05789,
+  6.229202,
+  4.941508,
+  4.376137,
+  6.7113,
+  0.066085,
+  3.434657,
+  9.596184,
+  0.5227,
+];
+
+const FEATURE_STDEVS = [
+  1.123268,
+  1.928727,
+  2.423974,
+  0.807634,
+  1.078569,
+  0.20808,
+  0.745443,
+  0.079664,
+  1.145445,
+  1.843769,
+  0.332617,
+];
+
+const WORKLOAD_MODEL: WorkloadModelClass[] = [
+  {
+    category: 'Email',
+    centroid: [-0.344011, -0.83059, -0.536304, 0.377899, 0.688999, 0.515289, 0.50544, 0.63263, -1.009891, -0.488097, 0.451332],
+    spread: [0.896513, 0.584213, 0.485281, 0.35, 0.35, 0.944698, 0.35, 0.525958, 0.35, 0.35, 0.515879],
+  },
+  {
+    category: 'File Transfer',
+    centroid: [0.176907, 0.913086, 1.092558, 1.090206, 0.328592, 0.213269, 0.766191, -0.735287, 1.301768, 1.318472, -1.457132],
+    spread: [0.952747, 0.595018, 0.474354, 0.35, 0.35, 0.870128, 0.35, 0.35, 0.35, 0.35, 0.35],
+  },
+  {
+    category: 'ICMP',
+    centroid: [-0.485213, -1.268573, -1.610587, -1.781672, -1.915379, -1.231847, -2.060874, 1.931828, -1.528785, -1.814143, 1.005652],
+    spread: [0.751721, 0.479984, 0.401501, 0.35, 0.613121, 1.031732, 0.35, 0.931822, 0.35, 0.35, 0.35],
+  },
+  {
+    category: 'Video',
+    centroid: [0.972706, 1.217041, 1.287832, 0.950284, 0.481529, 0.26257, 0.692162, -0.696851, 1.010064, 1.074285, -1.069973],
+    spread: [0.582127, 0.367384, 0.35, 0.35, 0.35, 0.806017, 0.35, 0.35, 0.35, 0.35, 0.35],
+  },
+  {
+    category: 'VoIP',
+    centroid: [0.548244, 0.602086, 0.126648, -1.061232, -0.935441, -0.272327, -0.801005, -0.570555, 0.405154, -0.190148, 0.998313],
+    spread: [0.510075, 0.35, 0.35, 0.35, 0.35, 0.562102, 0.35, 0.35, 0.35, 0.35, 0.35],
+  },
+  {
+    category: 'Web',
+    centroid: [-0.993206, -0.400182, -0.154128, 0.490586, 0.897068, 0.415927, 0.594074, -0.538105, 0.353112, 0.457767, -0.578757],
+    spread: [0.888942, 0.613789, 0.486135, 0.35, 0.35, 0.834603, 0.35, 0.35, 0.35, 0.35, 0.35],
+  },
+  {
+    category: 'WhatsApp',
+    centroid: [0.124573, -0.232868, -0.206017, -0.066071, 0.454632, 0.097119, 0.304011, -0.02366, -0.531422, -0.358137, 0.650565],
+    spread: [0.836906, 0.521466, 0.405833, 0.35, 0.35, 0.685408, 0.35, 0.35, 0.35, 0.35, 0.4613],
+  },
+];
+
 export function calculateEntropy(data: Uint8Array): number {
   if (data.length === 0) return 0;
   const frequencies = new Array(256).fill(0);
@@ -16,15 +104,54 @@ export function calculateEntropy(data: Uint8Array): number {
   return Number(entropy.toFixed(3));
 }
 
-export function classifyEspTraffic(features: EspTrafficFeatures): AiPrediction {
-  const {
-    meanPacketLength,
-    stdPacketLength,
-    meanInterArrivalTimeMs,
-    burstRatio,
-    flowSymmetry,
-  } = features;
+function log1p(value: number): number {
+  return Math.log1p(Math.max(0, Number.isFinite(value) ? value : 0));
+}
 
+function getFeatureVector(features: EspTrafficFeatures): number[] {
+  const durationSeconds = Math.max((features.flowDurationMs ?? 0) / 1000, 0);
+  const fallbackDuration = features.meanInterArrivalTimeMs > 0 && features.packetCount > 1
+    ? (features.meanInterArrivalTimeMs * (features.packetCount - 1)) / 1000
+    : 0;
+  const effectiveDuration = durationSeconds > 0 ? durationSeconds : fallbackDuration;
+  const packetRate = effectiveDuration > 0 ? features.packetCount / effectiveDuration : 0;
+  const byteRate = effectiveDuration > 0 ? features.totalBytes / effectiveDuration : 0;
+
+  return [
+    log1p(effectiveDuration),
+    log1p(features.packetCount),
+    log1p(features.totalBytes),
+    log1p(features.meanPacketLength),
+    log1p(features.stdPacketLength),
+    log1p(features.minPacketLength),
+    log1p(features.maxPacketLength),
+    log1p(features.meanInterArrivalTimeMs / 1000),
+    log1p(packetRate),
+    log1p(byteRate),
+    Math.max(0, Math.min(1, features.flowSymmetry)),
+  ];
+}
+
+function standardize(vector: number[]): number[] {
+  return vector.map((value, index) => (value - FEATURE_MEANS[index]) / FEATURE_STDEVS[index]);
+}
+
+function distanceToClass(vector: number[], modelClass: WorkloadModelClass): number {
+  const distance = vector.reduce((sum, value, index) => {
+    const scaled = (value - modelClass.centroid[index]) / modelClass.spread[index];
+    return sum + scaled * scaled;
+  }, 0);
+  return distance / FEATURE_NAMES.length;
+}
+
+function confidenceFromDistances(distance: number, runnerUpDistance: number): number {
+  const margin = Math.max(0, runnerUpDistance - distance);
+  const closeness = 1 / (1 + distance);
+  const marginScore = 1 - Math.exp(-margin / 3);
+  return Math.round(Math.max(15, Math.min(96, (0.65 * closeness + 0.35 * marginScore) * 100)));
+}
+
+export function classifyEspTraffic(features: EspTrafficFeatures): AiPrediction {
   if (features.packetCount < 5 || features.totalBytes === 0) {
     return {
       predictedClass: 'INSUFFICIENT_DATA',
@@ -34,7 +161,7 @@ export function classifyEspTraffic(features: EspTrafficFeatures): AiPrediction {
         name: 'Sample size',
         value: `${features.packetCount} ESP packets`,
         impact: 'Neutral',
-        explanation: 'Insufficient ESP observations for a reliable traffic-behavior classification.',
+        explanation: 'Insufficient ESP observations for a reliable workload classification.',
       }],
       source: 'UNKNOWN',
       status: 'NOT_DETERMINABLE',
@@ -42,122 +169,70 @@ export function classifyEspTraffic(features: EspTrafficFeatures): AiPrediction {
     };
   }
 
-  // Deterministic pattern matching baseline. These relative scores are not
-  // calibrated probabilities and do not come from the trained crypto models.
-  // Archetypes:
-  // 1. VoIP / Audio: small uniform packets (120-220b), low std (<40), strict 20ms IAT, high symmetry
-  // 2. Video Streaming: large mean (900-1300b), medium std, low IAT (10-30ms), downstream heavy
-  // 3. Web Browsing: mixed lengths (high std > 300), high burstiness, idle pauses (IAT > 100ms)
-  // 4. Bulk Data Transfer: near-MTU mean (>1300b), low std (<120), very low IAT (<10ms), steady burst
-  // 5. Telemetry / ICMP: very small (<100b), low std, high IAT (>500ms), low burst
+  const standardized = standardize(getFeatureVector(features));
+  const ranked = WORKLOAD_MODEL
+    .map((modelClass) => ({
+      category: modelClass.category,
+      distance: distanceToClass(standardized, modelClass),
+    }))
+    .sort((a, b) => a.distance - b.distance);
 
-  let voipScore = 0;
-  let videoScore = 0;
-  let webScore = 0;
-  let bulkScore = 0;
-  let telemetryScore = 0;
-
-  // 1. Packet Length Analysis
-  if (meanPacketLength < 100) {
-    telemetryScore += 45;
-  } else if (meanPacketLength <= 240) {
-    voipScore += 40;
-    if (stdPacketLength < 45) voipScore += 20;
-  } else if (meanPacketLength >= 1300) {
-    bulkScore += 45;
-    if (stdPacketLength < 150) bulkScore += 20;
-  } else if (meanPacketLength >= 900) {
-    videoScore += 40;
-    if (stdPacketLength >= 200) videoScore += 15;
-  } else {
-    webScore += 35;
-    if (stdPacketLength > 300) webScore += 25;
-  }
-
-  // 2. Timing / Inter-arrival time (IAT)
-  if (meanInterArrivalTimeMs >= 15 && meanInterArrivalTimeMs <= 30) {
-    voipScore += 30; // Classical RTP 20ms packetization
-  } else if (meanInterArrivalTimeMs < 10) {
-    bulkScore += 25;
-    videoScore += 15;
-  } else if (meanInterArrivalTimeMs >= 80) {
-    webScore += 25;
-    if (meanInterArrivalTimeMs > 300) telemetryScore += 35;
-  }
-
-  // 3. Burstiness & Flow Symmetry
-  if (burstRatio > 0.85 && bulkScore > 30) bulkScore += 15;
-  if (burstRatio > 0.65 && webScore > 30) webScore += 15;
-  if (burstRatio < 0.25 && voipScore > 30) voipScore += 15;
-
-  if (flowSymmetry > 0.85 && voipScore > 40) voipScore += 15;
-  if (flowSymmetry < 0.45 && (videoScore > 30 || webScore > 30)) {
-    videoScore += 10;
-    webScore += 10;
-  }
-
-  // Normalization with Softmax-like conversion
-  const rawScores: { category: TrafficCategory; score: number }[] = [
-    { category: 'VoIP / Audio Call', score: Math.max(voipScore, 5) },
-    { category: 'Video Streaming', score: Math.max(videoScore, 5) },
-    { category: 'Web Browsing / HTTPS', score: Math.max(webScore, 5) },
-    { category: 'Bulk Data Transfer (DB/FTP)', score: Math.max(bulkScore, 5) },
-    { category: 'Telemetry / Heartbeat (ICMP)', score: Math.max(telemetryScore, 5) },
-  ];
-
-  const totalRaw = rawScores.reduce((acc, curr) => acc + curr.score, 0);
-  const probabilities = rawScores
+  const top = ranked[0];
+  const runnerUp = ranked[1] ?? top;
+  const confidenceScore = confidenceFromDistances(top.distance, runnerUp.distance);
+  const inverseScores = ranked.map((item) => ({
+    category: item.category,
+    score: 1 / (1 + item.distance),
+  }));
+  const totalScore = inverseScores.reduce((sum, item) => sum + item.score, 0);
+  const probabilities = inverseScores
     .map((item) => ({
       category: item.category,
-      probability: Math.round((item.score / totalRaw) * 100),
+      probability: Math.round((item.score / totalScore) * 100),
     }))
     .sort((a, b) => b.probability - a.probability);
 
-  const top = probabilities[0];
+  const durationSeconds = Math.max((features.flowDurationMs ?? 0) / 1000, 0);
+  const effectiveDuration = durationSeconds > 0
+    ? durationSeconds
+    : (features.meanInterArrivalTimeMs * Math.max(0, features.packetCount - 1)) / 1000;
+  const packetRate = effectiveDuration > 0 ? features.packetCount / effectiveDuration : 0;
+  const byteRate = effectiveDuration > 0 ? features.totalBytes / effectiveDuration : 0;
 
-  // Primary features attribution
   const primaryFeatures = [
     {
-      name: 'Mean Packet Size',
-      value: `${Math.round(meanPacketLength)} bytes`,
-      impact: (top.category.includes('VoIP') && meanPacketLength < 250) ||
-              (top.category.includes('Bulk') && meanPacketLength > 1250)
-              ? ('Supporting' as const) : ('Neutral' as const),
-      explanation: `Payload size footprint aligns with typical ${top.category} framing.`,
+      name: 'Packet size profile',
+      value: `${Math.round(features.meanPacketLength)} bytes avg, +/-${Math.round(features.stdPacketLength)} std dev`,
+      impact: 'Supporting' as const,
+      explanation: `Compared with labeled ${top.category} flows from network_traffic_labeled_dataset.csv.`,
     },
     {
-      name: 'Packet Size Std Dev',
-      value: `±${Math.round(stdPacketLength)} bytes`,
-      impact: stdPacketLength < 50 ? ('Supporting' as const) : ('Neutral' as const),
-      explanation: stdPacketLength < 50 
-        ? 'High uniformity indicates fixed-rate codec audio transmission.'
-        : 'Variability indicates variable payload or multiplexed sessions.',
+      name: 'Flow volume',
+      value: `${features.packetCount} packets / ${features.totalBytes} bytes`,
+      impact: 'Supporting' as const,
+      explanation: 'Packet and byte totals help separate short control flows from long media or transfer flows.',
     },
     {
-      name: 'Inter-Arrival Time (IAT)',
-      value: `${meanInterArrivalTimeMs.toFixed(1)} ms`,
-      impact: (meanInterArrivalTimeMs >= 18 && meanInterArrivalTimeMs <= 25)
-        ? ('Supporting' as const)
-        : ('Neutral' as const),
-      explanation: meanInterArrivalTimeMs < 10 
-        ? 'Rapid saturated transmissions typical of high-bandwidth transfer.'
-        : 'Cadence matches standard interactive or streaming interval.',
+      name: 'Timing rate',
+      value: `${features.meanInterArrivalTimeMs.toFixed(2)} ms IAT, ${packetRate.toFixed(2)} pkt/s`,
+      impact: 'Supporting' as const,
+      explanation: 'Cadence and packet rate are matched against the labeled workload baseline.',
     },
     {
-      name: 'Ciphertext Entropy',
-      value: `${features.calculatedEntropy} / 8.00 bits`,
-      impact: features.calculatedEntropy > 7.90 ? ('Supporting' as const) : ('Neutral' as const),
-      explanation: 'Entropy describes byte distribution but cannot prove encryption or reveal the application inside ESP.',
+      name: 'Direction symmetry',
+      value: `${features.flowSymmetry.toFixed(3)} symmetry, ${byteRate.toFixed(1)} B/s`,
+      impact: 'Supporting' as const,
+      explanation: 'Symmetry and byte rate help distinguish bidirectional chat/control traffic from asymmetric transfer or video flows.',
     },
   ];
 
   return {
     predictedClass: top.category,
-    confidenceScore: top.probability,
+    confidenceScore,
     probabilities,
     primaryFeatures,
     source: 'DERIVED_FROM_OBSERVED_DATA',
     status: 'INFERRED',
-    evidence: 'Rule-based traffic pattern match from aggregate ESP metadata; percentages are relative scores, not calibrated probabilities.',
+    evidence: 'Dataset-derived encrypted-flow workload estimate using centroids trained from network_traffic_labeled_dataset.csv. It does not decrypt ESP payloads.',
   };
 }

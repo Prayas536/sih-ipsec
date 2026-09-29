@@ -25,8 +25,8 @@ export const TestbedGeneratorModal: React.FC<TestbedGeneratorModalProps> = ({
   const [pfs, setPfs] = useState<boolean>(true);
   const [ipVersion, setIpVersion] = useState<'IPv4' | 'IPv6'>('IPv4');
   const [trafficType, setTrafficType] = useState<
-    'VoIP / Audio Call' | 'Video Streaming' | 'Web Browsing / HTTPS' | 'Bulk Data Transfer (DB/FTP)'
-  >('Video Streaming');
+    'VoIP' | 'WhatsApp' | 'Email' | 'Web' | 'Video' | 'ICMP' | 'File Transfer'
+  >('Video');
   const [localAddress, setLocalAddress] = useState('172.20.0.2');
   const [remoteAddress, setRemoteAddress] = useState('172.20.0.3');
   const [localId, setLocalId] = useState('peerB');
@@ -99,10 +99,26 @@ export const TestbedGeneratorModal: React.FC<TestbedGeneratorModalProps> = ({
   const configurationIsValid = !previewConfig.startsWith('# Fix testbed settings');
 
   const handleApplyToAnalyzer = () => {
-    // Construct scenario
-    const meanLen = trafficType.includes('VoIP') ? 160 : (trafficType.includes('Bulk') ? 1420 : 950);
-    const stdLen = trafficType.includes('VoIP') ? 25 : (trafficType.includes('Bulk') ? 80 : 340);
-    const iat = trafficType.includes('VoIP') ? 20.0 : (trafficType.includes('Bulk') ? 5.2 : 45.0);
+    const trafficProfiles: Record<typeof trafficType, {
+      packets: number;
+      durationMs: number;
+      meanLen: number;
+      stdLen: number;
+      minLen: number;
+      maxLen: number;
+      iatMs: number;
+      symmetry: number;
+      burstRatio: number;
+    }> = {
+      VoIP: { packets: 2990, durationMs: 59035, meanLen: 186, stdLen: 63, minLen: 90, maxLen: 305, iatMs: 18.75, symmetry: 0.84, burstRatio: 0.18 },
+      WhatsApp: { packets: 2706, durationMs: 130822, meanLen: 443, stdLen: 191, minLen: 62, maxLen: 1052, iatMs: 47.43, symmetry: 0.83, burstRatio: 0.42 },
+      Email: { packets: 904, durationMs: 85049, meanLen: 787, stdLen: 319, minLen: 86, maxLen: 1466, iatMs: 101.33, symmetry: 0.63, burstRatio: 0.48 },
+      Web: { packets: 800, durationMs: 18624, meanLen: 729, stdLen: 375, minLen: 97, maxLen: 1287, iatMs: 23.56, symmetry: 0.23, burstRatio: 0.72 },
+      Video: { packets: 3900, durationMs: 118000, meanLen: 1080, stdLen: 260, minLen: 96, maxLen: 1460, iatMs: 7.8, symmetry: 0.18, burstRatio: 0.82 },
+      ICMP: { packets: 40, durationMs: 44874, meanLen: 170, stdLen: 0, minLen: 170, maxLen: 170, iatMs: 3100, symmetry: 0.99, burstRatio: 0.15 },
+      'File Transfer': { packets: 20001, durationMs: 135496, meanLen: 1167, stdLen: 276, minLen: 97, maxLen: 1419, iatMs: 7.29, symmetry: 0.01, burstRatio: 0.9 },
+    };
+    const profile = trafficProfiles[trafficType];
 
     const customScenario: VpnCaptureScenario = {
       id: `custom-lab-${Date.now()}`,
@@ -128,16 +144,17 @@ export const TestbedGeneratorModal: React.FC<TestbedGeneratorModalProps> = ({
         responderSpi: '0x' + Math.floor(Math.random() * 0xffffffff).toString(16),
       },
       features: {
-        packetCount: 1200,
-        totalBytes: 1200 * meanLen,
-        meanPacketLength: meanLen,
-        stdPacketLength: stdLen,
-        minPacketLength: 64,
-        maxPacketLength: 1460,
-        meanInterArrivalTimeMs: iat,
-        burstRatio: trafficType.includes('Bulk') ? 0.9 : 0.4,
-        flowSymmetry: trafficType.includes('VoIP') ? 0.95 : 0.6,
+        packetCount: profile.packets,
+        totalBytes: profile.packets * profile.meanLen,
+        meanPacketLength: profile.meanLen,
+        stdPacketLength: profile.stdLen,
+        minPacketLength: profile.minLen,
+        maxPacketLength: profile.maxLen,
+        meanInterArrivalTimeMs: profile.iatMs,
+        burstRatio: profile.burstRatio,
+        flowSymmetry: profile.symmetry,
         calculatedEntropy: 7.98,
+        flowDurationMs: profile.durationMs,
       },
       actualTrafficType: trafficType,
       packets: [
@@ -165,7 +182,7 @@ export const TestbedGeneratorModal: React.FC<TestbedGeneratorModalProps> = ({
           sourceIp: localAddress,
           destIp: remoteAddress,
           protocol: 'ESP',
-          length: meanLen,
+          length: profile.meanLen,
           info: `ESP Encrypted Datagram (Simulated ${trafficType})`,
           seq: 1,
         },
@@ -451,10 +468,13 @@ export const TestbedGeneratorModal: React.FC<TestbedGeneratorModalProps> = ({
                 onChange={(e) => setTrafficType(e.target.value as any)}
                 className="w-full bg-white border border-slate-300 rounded-md p-2 text-slate-900 text-xs font-medium focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               >
-                <option value="VoIP / Audio Call">VoIP / Audio Call (Small uniform 20ms packets)</option>
-                <option value="Video Streaming">Video Streaming (High bandwidth downstream frames)</option>
-                <option value="Web Browsing / HTTPS">Web Browsing / HTTPS (Burst then idle pauses)</option>
-                <option value="Bulk Data Transfer (DB/FTP)">Bulk Data Transfer (Full MTU 1420b saturated flows)</option>
+                <option value="VoIP">VoIP</option>
+                <option value="WhatsApp">WhatsApp</option>
+                <option value="Email">Email</option>
+                <option value="Web">Web</option>
+                <option value="Video">Video</option>
+                <option value="ICMP">ICMP</option>
+                <option value="File Transfer">File Transfer</option>
               </select>
             </div>
 
