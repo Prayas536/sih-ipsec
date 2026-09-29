@@ -1,0 +1,47 @@
+C:\Users\User\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\scapy\layers\tls\crypto\groups.py:25: CryptographyDeprecationWarning: Diffie-Hellman over finite fields (FFDH) is deprecated and support will be removed in a future release. Use a more modern key exchange algorithm.
+  from cryptography.hazmat.primitives.asymmetric.dh import DHParameterNumbers
+[api] "POST /api/gateways HTTP/1.1" 201 -
+[api] "POST /api/gateways/enroll HTTP/1.1" 200 -
+[+] Gateway enrolled successfully!
+    Gateway ID: gw-4b0db7a9c9ae
+    Server:     http://127.0.0.1:61363
+    Adapter:    none
+    Config:     C:\Users\User\AppData\Local\Temp\tmpjtjs7s45\test_agent_config.json
+[api] "POST /api/gateways/gw-4b0db7a9c9ae/telemetry HTTP/1.1" 200 -
+[+] Initial telemetry submitted: ACCEPTED
+[api] "GET /api/gateways/gw-4b0db7a9c9ae HTTP/1.1" 200 -
+[agent] Starting Gateway Agent for gw-4b0db7a9c9ae -> http://127.0.0.1:61363 (adapter: none, interval: 15s)
+[api] "POST /api/gateways/gw-4b0db7a9c9ae/telemetry HTTP/1.1" 200 -
+[agent] [02:16:43] Telemetry submitted: ACCEPTED
+[api] "GET /api/gateways/gw-4b0db7a9c9ae/report HTTP/1.1" 200 -
+[api] "GET /api/gateways/gw-9bab143e98ef/report HTTP/1.1" 200 -
+[api] "POST /api/gateways/gw-a7a47a7cd31d/ai-report HTTP/1.1" 503 -
+.........C:\Users\User\AppData\Local\Python\pythoncore-3.14-64\Lib\tempfile.py:484: ResourceWarning: Implicitly cleaning up <HTTPError 503: 'Service Unavailable'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+[api] "POST /api/gateways/gw-b22b8a436f41/ai-report HTTP/1.1" 200 -
+[api] "GET /api/gateways/gw-06b10967afaf/report HTTP/1.1" 200 -
+[api] "POST /api/gateways HTTP/1.1" 201 -
+[api] "GET /api/gateways HTTP/1.1" 200 -
+[api] "POST /api/gateways/enroll HTTP/1.1" 200 -
+[api] "POST /api/gateways/gw-7278cccc368b/heartbeat HTTP/1.1" 401 -
+...C:\Users\User\AppData\Local\Python\pythoncore-3.14-64\Lib\tempfile.py:484: ResourceWarning: Implicitly cleaning up <HTTPError 401: 'Unauthorized'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+[api] "POST /api/gateways/gw-7278cccc368b/heartbeat HTTP/1.1" 200 -
+[api] "POST /api/gateways/gw-7278cccc368b/telemetry HTTP/1.1" 200 -
+[api] "GET /api/gateways/gw-7278cccc368b HTTP/1.1" 200 -
+[api] "GET /api/agent/install.sh HTTP/1.1" 200 -
+[api] "GET /api/agent/download HTTP/1.1" 200 -
+[api] "POST /api/gateways/gw-7278cccc368b/revoke HTTP/1.1" 200 -
+[api] "POST /api/gateways/gw-7278cccc368b/heartbeat HTTP/1.1" 401 -
+[api] "DELETE /api/gateways/gw-7278cccc368b HTTP/1.1" 200 -
+[api] "POST /api/reports/pcap-narrative HTTP/1.1" 200 -
+[api] "POST /api/gateways/gw-0b3c75aa3e18/testbed HTTP/1.1" 401 -
+[api] "POST /api/gateways/gw-0b3c75aa3e18/testbed HTTP/1.1" 202 -
+[api] "POST /api/gateways/gw-0b3c75aa3e18/testbed/next HTTP/1.1" 200 -
+[api] "POST /api/gateways/gw-0b3c75aa3e18/testbed/34506248f3a644c7b08926616c8b86be/result HTTP/1.1" 200 -
+[api] "GET /api/gateways/gw-0b3c75aa3e18/testbed/34506248f3a644c7b08926616c8b86be HTTP/1.1" 200 -
+...........................................
+----------------------------------------------------------------------
+Ran 55 tests in 1.114s
+
+OK

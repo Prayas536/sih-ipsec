@@ -199,6 +199,25 @@ test('does not classify an insufficient ESP sample', () => {
   assert.equal(prediction.status, 'NOT_DETERMINABLE');
 });
 
+test('uses the labeled workload baseline instead of treating every small ESP flow as VoIP', () => {
+  const prediction = classifyEspTraffic({
+    packetCount: 40,
+    totalBytes: 6800,
+    meanPacketLength: 170,
+    stdPacketLength: 0,
+    minPacketLength: 170,
+    maxPacketLength: 170,
+    meanInterArrivalTimeMs: 3.1,
+    burstRatio: 0.9,
+    flowSymmetry: 0.99,
+    calculatedEntropy: 7.739,
+    flowDurationMs: 44874.4,
+  });
+  assert.equal(prediction.predictedClass, 'ICMP');
+  assert.notEqual(prediction.predictedClass, 'VoIP');
+  assert.equal(prediction.source, 'DERIVED_FROM_OBSERVED_DATA');
+});
+
 test('classifies UDP 4500 ESP without a non-ESP marker as ESP', async () => {
   const result = await parseUploadedFile(makeNatTEspPcap());
   assert.equal(result.packets[0].protocol, 'ESP');

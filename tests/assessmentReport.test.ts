@@ -42,9 +42,9 @@ test('executive and technical exports differ and keep unknown controls separate 
   const technical = formatAssessmentMarkdown('TECHNICAL', scenario, buildReportSections('TECHNICAL', scenario, scorecard, prediction));
   assert.match(executive, /Observed configuration risk score: 0\/100/);
   assert.match(executive, /Evidence gaps/);
-  assert.match(executive, /AI confidence score: Unavailable/);
-  assert.doesNotMatch(executive, /Cryptographic parameters/);
-  assert.match(technical, /Cryptographic parameters/);
+  assert.match(executive, /Crypto ML confidence score: Unavailable/);
+  assert.doesNotMatch(executive, /Technical interpretation/);
+  assert.match(technical, /Packet-observed cryptographic evidence/);
   assert.match(technical, /Traffic analysis and metadata inference/);
 });
 
@@ -64,5 +64,5 @@ test('trained model confidence is reported separately from workload pattern matc
   assert.notEqual(snapshot.trafficMatchScore, snapshot.aiConfidenceScore);
   const technical = formatAssessmentMarkdown('TECHNICAL', scenario, buildReportSections('TECHNICAL', scenario, scorecard, prediction));
   assert.match(technical, /Mean predicted-class probability across 4 available cryptographic inference models/);
-  assert.match(technical, /Cryptographic model predictions/);
+  assert.match(technical, /ML cryptographic predictions/);
 });

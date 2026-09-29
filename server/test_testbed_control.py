@@ -22,7 +22,7 @@ def sample_settings():
         "authMethod": "psk",
         "localTs": "172.20.0.2/32",
         "remoteTs": "172.20.0.3/32",
-        "trafficType": "Video Streaming",
+        "trafficType": "Video",
     }
 
 

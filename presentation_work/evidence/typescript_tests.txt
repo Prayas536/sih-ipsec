@@ -1,0 +1,509 @@
+
+> react-example@0.0.0 test
+> tsx --test tests/*.test.ts
+
+TAP version 13
+# Subtest: executive and technical exports differ and keep unknown controls separate from scored risk
+not ok 1 - executive and technical exports differ and keep unknown controls separate from scored risk
+  ---
+  duration_ms: 5.6422
+  type: 'test'
+  location: 'D:\\SIH-160\\sih-ipsec\\tests\\assessmentReport.test.ts:30:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /AI confidence score: Unavailable/. Input:
+    
+    '# Executive security report\n' +
+      '\n' +
+      'Capture: Controlled capture\n' +
+      'Generated: 2026-09-27T20:46:39.002Z\n' +
+      '\n' +
+      '## Evidence basis and limits\n' +
+      '- Packet-observed fields come from visible IKE/IP/ESP metadata only.\n' +
+      '- Encrypted ESP payload contents are not visible, so application identity and user activity are not confirmed.\n' +
+      '- Unknown controls such as PFS, replay window, and SA lifetime remain evidence gaps unless Child-SA negotiation, gateway telemetry, or configuration proves them.\n' +
+      '- ML predictions and AI prose are separated from packet-observed findings.\n' +
+      '\n' +
+      '## Security and risk\n' +
+      '- Evidence-adjusted security score: 10/100 (Critical).\n' +
+      '- Observed configuration risk score: 0/100. This is a rule-based penalty, not the probability of an attack.\n' +
+      '- Evidence coverage: 10% (PARTIAL). Unknown controls receive no security credit.\n' +
+      '\n' +
+      '## Packet-observed cryptographic evidence\n' +
+      '\n' +
+      '| Field | Packet-observed value | Evidence status |\n' +
+      '| --- | --- | --- |\n' +
+      '| IKE version | IKEv2 | Observed |\n' +
+      '| Operating mode | Tunnel Mode | Observed |\n' +
+      '| Encryption | Not observed in capture | Not observed |\n' +
+      '| Integrity | Not observed in capture | Not observed |\n' +
+      '| DH group | Not observed in capture | Not observed |\n' +
+      '| PFS | Not determined from packet evidence | Evidence gap |\n' +
+      '| Replay protection | Not determined from packet evidence | Evidence gap |\n' +
+      '| Key lifetime | Not observed | Evidence gap |\n' +
+      '\n' +
+      '## Traffic and metadata inference\n' +
+      '- Inferred workload: VoIP / Audio Call.\n' +
+      '- Traffic pattern match: 86%. This is a relative heuristic score, not calibrated model confidence.\n' +
+      '- Wire metadata: unknown IKE and 30 ESP frames; NAT traversal not determined.\n' +
+      '- Application identity and encrypted contents cannot be confirmed from packet metadata.\n' +
+      '\n' +
+      '## Crypto ML confidence\n' +
+      '- Crypto ML confidence score: Unavailable.\n' +
+      '- The trained cryptographic inference service did not return model predictions for this capture.\n' +
+      '\n' +
+      '## Deterministic summary\n' +
+      '- No confirmed configuration risk was scored, but 5 controls need more evidence.\n' +
+      '\n' +
+      '## Threat matrix and remediation\n' +
+      '- No observed configuration risks were scored. Review evidence gaps before concluding the tunnel is secure.\n' +
+      '\n' +
+      '## Evidence gaps\n' +
+      '- Key Exchange Protocol: IKEv2 header observed; SA proposal not decoded. Capture the complete IKE_SA_INIT request and response, including their SA payloads.\n' +
+      '- Symmetric Encryption Cipher: Not observed in capture. Capture an IKE_SA_INIT exchange containing the SA payload.\n' +
+      '- Diffie-Hellman Key Exchange: Not observed in capture. Capture an IKE_SA_INIT exchange containing the SA payload.\n' +
+      '- Perfect Forward Secrecy (PFS): Not observed in capture. Capture CREATE_CHILD_SA exchanges or provide an explicit Child SA configuration.\n' +
+      '- Anti-Replay Window Protection: Not observed in capture. Provide Child SA configuration or negotiated ESN evidence.\n'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: |-
+    # Executive security report
+    
+    Capture: Controlled capture
+    Generated: 2026-09-27T20:46:39.002Z
+    
+    ## Evidence basis and limits
+    - Packet-observed fields come from visible IKE/IP/ESP metadata only.
+    - Encrypted ESP payload contents are not visible, so application identity and user activity are not confirmed.
+    - Unknown controls such as PFS, replay window, and SA lifetime remain evidence gaps unless Child-SA negotiation, gateway telemetry, or configuration proves them.
+    - ML predictions and AI prose are separated from packet-observed findings.
+    
+    ## Security and risk
+    - Evidence-adjusted security score: 10/100 (Critical).
+    - Observed configuration risk score: 0/100. This is a rule-based penalty, not the probability of an attack.
+    - Evidence coverage: 10% (PARTIAL). Unknown controls receive no security credit.
+    
+    ## Packet-observed cryptographic evidence
+    
+    | Field | Packet-observed value | Evidence status |
+    | --- | --- | --- |
+    | IKE version | IKEv2 | Observed |
+    | Operating mode | Tunnel Mode | Observed |
+    | Encryption | Not observed in capture | Not observed |
+    | Integrity | Not observed in capture | Not observed |
+    | DH group | Not observed in capture | Not observed |
+    | PFS | Not determined from packet evidence | Evidence gap |
+    | Replay protection | Not determined from packet evidence | Evidence gap |
+    | Key lifetime | Not observed | Evidence gap |
+    
+    ## Traffic and metadata inference
+    - Inferred workload: VoIP / Audio Call.
+    - Traffic pattern match: 86%. This is a relative heuristic score, not calibrated model confidence.
+    - Wire metadata: unknown IKE and 30 ESP frames; NAT traversal not determined.
+    - Application identity and encrypted contents cannot be confirmed from packet metadata.
+    
+    ## Crypto ML confidence
+    - Crypto ML confidence score: Unavailable.
+    - The trained cryptographic inference service did not return model predictions for this capture.
+    
+    ## Deterministic summary
+    - No confirmed configuration risk was scored, but 5 controls need more evidence.
+    
+    ## Threat matrix and remediation
+    - No observed configuration risks were scored. Review evidence gaps before concluding the tunnel is secure.
+    
+    ## Evidence gaps
+    - Key Exchange Protocol: IKEv2 header observed; SA proposal not decoded. Capture the complete IKE_SA_INIT request and response, including their SA payloads.
+    - Symmetric Encryption Cipher: Not observed in capture. Capture an IKE_SA_INIT exchange containing the SA payload.
+    - Diffie-Hellman Key Exchange: Not observed in capture. Capture an IKE_SA_INIT exchange containing the SA payload.
+    - Perfect Forward Secrecy (PFS): Not observed in capture. Capture CREATE_CHILD_SA exchanges or provide an explicit Child SA configuration.
+    - Anti-Replay Window Protection: Not observed in capture. Provide Child SA configuration or negotiated ESN evidence.
+    
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (D:\SIH-160\sih-ipsec\tests\assessmentReport.test.ts:45:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: trained model confidence is reported separately from workload pattern match
+not ok 2 - trained model confidence is reported separately from workload pattern match
+  ---
+  duration_ms: 1.0775
+  type: 'test'
+  location: 'D:\\SIH-160\\sih-ipsec\\tests\\assessmentReport.test.ts:51:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /Cryptographic model predictions/. Input:
+    
+    '# Technical security report\n' +
+      '\n' +
+      'Capture: Controlled capture\n' +
+      'Generated: 2026-09-27T20:46:39.007Z\n' +
+      '\n' +
+      '## Evidence basis and limits\n' +
+      '- Packet-observed fields come from visible IKE/IP/ESP metadata only.\n' +
+      '- Encrypted ESP payload contents are not visible, so application identity and user activity are not confirmed.\n' +
+      '- Unknown controls such as PFS, replay window, and SA lifetime remain evidence gaps unless Child-SA negotiation, gateway telemetry, or configuration proves them.\n' +
+      '- ML predictions and AI prose are separated from packet-observed findings.\n' +
+      '\n' +
+      '## Technical interpretation\n' +
+      '- No confirmed configuration risk was scored, but 5 controls need more evidence.\n' +
+      '\n' +
+      '## Security and risk\n' +
+      '- Evidence-adjusted security score: 10/100 (Critical).\n' +
+      '- Observed configuration risk score: 0/100. This is a rule-based penalty, not the probability of an attack.\n' +
+      '- Evidence coverage: 10% (PARTIAL). Unknown controls receive no security credit.\n' +
+      '\n' +
+      '## Threat matrix and remediation\n' +
+      '- No observed configuration risks were scored. Review evidence gaps before concluding the tunnel is secure.\n' +
+      '\n' +
+      '## Evidence gaps\n' +
+      '- Key Exchange Protocol: IKEv2 header observed; SA proposal not decoded. Capture the complete IKE_SA_INIT request and response, including their SA payloads.\n' +
+      '- Symmetric Encryption Cipher: Not observed in capture. Capture an IKE_SA_INIT exchange containing the SA payload.\n' +
+      '- Diffie-Hellman Key Exchange: Not observed in capture. Capture an IKE_SA_INIT exchange containing the SA payload.\n' +
+      '- Perfect Forward Secrecy (PFS): Not observed in capture. Capture CREATE_CHILD_SA exchanges or provide an explicit Child SA configuration.\n' +
+      '- Anti-Replay Window Protection: Not observed in capture. Provide Child SA configuration or negotiated ESN evidence.\n' +
+      '\n' +
+      '## Packet-observed cryptographic evidence\n' +
+      '\n' +
+      '| Field | Packet-observed value | Evidence status |\n' +
+      '| --- | --- | --- |\n' +
+      '| IKE version | IKEv2 | Observed |\n' +
+      '| Operating mode | Tunnel Mode | Observed |\n' +
+      '| Encryption | Not observed in capture | Not observed |\n' +
+      '| Integrity | Not observed in capture | Not observed |\n' +
+      '| DH group | Not observed in capture | Not observed |\n' +
+      '| PFS | Not determined from packet evidence | Evidence gap |\n' +
+      '| Replay protection | Not determined from packet evidence | Evidence gap |\n' +
+      '| Key lifetime | Not observed | Evidence gap |\n' +
+      '\n' +
+      '## Traffic analysis and metadata inference\n' +
+      '- Inferred workload: VoIP / Audio Call.\n' +
+      '- Traffic pattern match: 86%. This is a relative heuristic score, not calibrated model confidence.\n' +
+      '- ESP packets: 30; mean length: 160.0 bytes; mean inter-arrival: 20.0 ms; entropy: 7.40 bits/byte.\n' +
+      '- Wire metadata: unknown IKE and 30 ESP frames; NAT traversal not determined.\n' +
+      '- Application identity and encrypted contents cannot be confirmed from packet metadata.\n' +
+      '\n' +
+      '## Crypto ML confidence\n' +
+      '- Crypto ML confidence score: 75%.\n' +
+      '- Mean predicted-class probability across 4 available cryptographic inference models. This is not AI narrative confidence, measured accuracy, or probability that the deployment is secure.\n' +
+      '\n' +
+      '## ML cryptographic predictions\n' +
+      '- These values are model predictions from packet/flow features. They are not decoded protocol fields and must be confirmed with visible negotiation evidence, gateway telemetry, or configuration.\n' +
+      '- Use this section to guide investigation; do not treat it as compliance proof.\n' +
+      '\n' +
+      '| Target | ML prediction | Predicted-class probability | Evidence status |\n' +
+      '| --- | --- | --- | --- |\n' +
+      '| Encryption cipher | AES-128 | 80% | ML inference, not packet-observed |\n' +
+      '| Integrity algorithm | SHA-256 | 70% | ML inference, not packet-observed |\n' +
+      '| Key exchange group | DH Group 14 / MODP-2048 | 90% | ML inference, not packet-observed |\n' +
+      '| Perfect Forward Secrecy | No PFS predicted | 60% | ML inference, not packet-observed |\n'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: |-
+    # Technical security report
+    
+    Capture: Controlled capture
+    Generated: 2026-09-27T20:46:39.007Z
+    
+    ## Evidence basis and limits
+    - Packet-observed fields come from visible IKE/IP/ESP metadata only.
+    - Encrypted ESP payload contents are not visible, so application identity and user activity are not confirmed.
+    - Unknown controls such as PFS, replay window, and SA lifetime remain evidence gaps unless Child-SA negotiation, gateway telemetry, or configuration proves them.
+    - ML predictions and AI prose are separated from packet-observed findings.
+    
+    ## Technical interpretation
+    - No confirmed configuration risk was scored, but 5 controls need more evidence.
+    
+    ## Security and risk
+    - Evidence-adjusted security score: 10/100 (Critical).
+    - Observed configuration risk score: 0/100. This is a rule-based penalty, not the probability of an attack.
+    - Evidence coverage: 10% (PARTIAL). Unknown controls receive no security credit.
+    
+    ## Threat matrix and remediation
+    - No observed configuration risks were scored. Review evidence gaps before concluding the tunnel is secure.
+    
+    ## Evidence gaps
+    - Key Exchange Protocol: IKEv2 header observed; SA proposal not decoded. Capture the complete IKE_SA_INIT request and response, including their SA payloads.
+    - Symmetric Encryption Cipher: Not observed in capture. Capture an IKE_SA_INIT exchange containing the SA payload.
+    - Diffie-Hellman Key Exchange: Not observed in capture. Capture an IKE_SA_INIT exchange containing the SA payload.
+    - Perfect Forward Secrecy (PFS): Not observed in capture. Capture CREATE_CHILD_SA exchanges or provide an explicit Child SA configuration.
+    - Anti-Replay Window Protection: Not observed in capture. Provide Child SA configuration or negotiated ESN evidence.
+    
+    ## Packet-observed cryptographic evidence
+    
+    | Field | Packet-observed value | Evidence status |
+    | --- | --- | --- |
+    | IKE version | IKEv2 | Observed |
+    | Operating mode | Tunnel Mode | Observed |
+    | Encryption | Not observed in capture | Not observed |
+    | Integrity | Not observed in capture | Not observed |
+    | DH group | Not observed in capture | Not observed |
+    | PFS | Not determined from packet evidence | Evidence gap |
+    | Replay protection | Not determined from packet evidence | Evidence gap |
+    | Key lifetime | Not observed | Evidence gap |
+    
+    ## Traffic analysis and metadata inference
+    - Inferred workload: VoIP / Audio Call.
+    - Traffic pattern match: 86%. This is a relative heuristic score, not calibrated model confidence.
+    - ESP packets: 30; mean length: 160.0 bytes; mean inter-arrival: 20.0 ms; entropy: 7.40 bits/byte.
+    - Wire metadata: unknown IKE and 30 ESP frames; NAT traversal not determined.
+    - Application identity and encrypted contents cannot be confirmed from packet metadata.
+    
+    ## Crypto ML confidence
+    - Crypto ML confidence score: 75%.
+    - Mean predicted-class probability across 4 available cryptographic inference models. This is not AI narrative confidence, measured accuracy, or probability that the deployment is secure.
+    
+    ## ML cryptographic predictions
+    - These values are model predictions from packet/flow features. They are not decoded protocol fields and must be confirmed with visible negotiation evidence, gateway telemetry, or configuration.
+    - Use this section to guide investigation; do not treat it as compliance proof.
+    
+    | Target | ML prediction | Predicted-class probability | Evidence status |
+    | --- | --- | --- | --- |
+    | Encryption cipher | AES-128 | 80% | ML inference, not packet-observed |
+    | Integrity algorithm | SHA-256 | 70% | ML inference, not packet-observed |
+    | Key exchange group | DH Group 14 / MODP-2048 | 90% | ML inference, not packet-observed |
+    | Perfect Forward Secrecy | No PFS predicted | 60% | ML inference, not packet-observed |
+    
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (D:\SIH-160\sih-ipsec\tests\assessmentReport.test.ts:67:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# PCAP: {
+#   version: '2.4',
+#   littleEndian: false,
+#   nanosecondTimestamp: false,
+#   snapLength: 65535,
+#   linkType: 1
+# }
+# [PCAP Analyzer] ike-init.pcap
+#   Packets: 1
+#   IKE packets: 1
+#   ESP packets: 0
+#   IKE SA_INIT: true
+#   IKE_AUTH: false
+#   CREATE_CHILD_SA: false
+#   Initiator SPI: 0x0102030405060708
+#   Responder SPI: Not observed in capture
+#   Proposals: []
+#   Encryption: Not observed in capture
+#   Key length: 0
+#   PRF: Not observed in capture
+#   Integrity: Not observed in capture
+#   DH: Not observed in capture
+#   ESN: Not observed
+# PCAP: {
+#   version: '2.4',
+#   littleEndian: false,
+#   nanosecondTimestamp: false,
+#   snapLength: 65535,
+#   linkType: 1
+# }
+# [PCAP Analyzer] nat-t-esp.pcap
+#   Packets: 1
+#   IKE packets: 0
+#   ESP packets: 1
+#   IKE SA_INIT: false
+#   IKE_AUTH: false
+#   CREATE_CHILD_SA: false
+#   Initiator SPI: Not observed in capture
+#   Responder SPI: Not observed in capture
+#   Proposals: []
+#   Encryption: Not observed in capture
+#   Key length: 0
+#   PRF: Not observed in capture
+#   Integrity: Not observed in capture
+#   DH: Not observed in capture
+#   ESN: Not observed
+# PCAP: {
+#   version: '2.4',
+#   littleEndian: false,
+#   nanosecondTimestamp: false,
+#   snapLength: 65535,
+#   linkType: 1
+# }
+# [PCAP Analyzer] ah.pcap
+#   Packets: 1
+#   IKE packets: 0
+#   ESP packets: 0
+#   IKE SA_INIT: false
+#   IKE_AUTH: false
+#   CREATE_CHILD_SA: false
+#   Initiator SPI: Not observed in capture
+#   Responder SPI: Not observed in capture
+#   Proposals: []
+#   Encryption: Not observed in capture
+#   Key length: 0
+#   PRF: Not observed in capture
+#   Integrity: Not observed in capture
+#   DH: Not observed in capture
+#   ESN: Not observed
+# PCAP: {
+#   version: '2.4',
+#   littleEndian: false,
+#   nanosecondTimestamp: false,
+#   snapLength: 65535,
+#   linkType: 1
+# }
+# [PCAP Analyzer] capture.pcap
+#   Packets: 1
+#   IKE packets: 0
+#   ESP packets: 0
+#   IKE SA_INIT: false
+#   IKE_AUTH: false
+#   CREATE_CHILD_SA: false
+#   Initiator SPI: Not observed in capture
+#   Responder SPI: Not observed in capture
+#   Proposals: []
+#   Encryption: Not observed in capture
+#   Key length: 0
+#   PRF: Not observed in capture
+#   Integrity: Not observed in capture
+#   DH: Not observed in capture
+#   ESN: Not observed
+# PCAP: {
+#   version: '2.4',
+#   littleEndian: false,
+#   nanosecondTimestamp: false,
+#   snapLength: 65535,
+#   linkType: 1
+# }
+# [PCAP Analyzer] encrypted-ike-auth.pcap
+#   Packets: 1
+#   IKE packets: 1
+#   ESP packets: 0
+#   IKE SA_INIT: false
+#   IKE_AUTH: true
+#   CREATE_CHILD_SA: false
+#   Initiator SPI: 0x0000000000000000
+#   Responder SPI: Not observed in capture
+#   Proposals: []
+#   Encryption: Not observed in capture
+#   Key length: 0
+#   PRF: Not observed in capture
+#   Integrity: Not observed in capture
+#   DH: Not observed in capture
+#   ESN: Not observed
+# Subtest: parses an observed IKEv2 header from packet bytes
+ok 3 - parses an observed IKEv2 header from packet bytes
+  ---
+  duration_ms: 8.8059
+  type: 'test'
+  ...
+# Subtest: does not classify an insufficient ESP sample
+ok 4 - does not classify an insufficient ESP sample
+  ---
+  duration_ms: 0.5745
+  type: 'test'
+  ...
+# Subtest: classifies UDP 4500 ESP without a non-ESP marker as ESP
+ok 5 - classifies UDP 4500 ESP without a non-ESP marker as ESP
+  ---
+  duration_ms: 1.8037
+  type: 'test'
+  ...
+# Subtest: extracts AH SPI and sequence evidence
+ok 6 - extracts AH SPI and sequence evidence
+  ---
+  duration_ms: 2.1386
+  type: 'test'
+  ...
+# Subtest: parses a valid PCAPNG enhanced packet block
+ok 7 - parses a valid PCAPNG enhanced packet block
+  ---
+  duration_ms: 1.5995
+  type: 'test'
+  ...
+# Subtest: rejects truncated capture input safely
+ok 8 - rejects truncated capture input safely
+  ---
+  duration_ms: 0.8906
+  type: 'test'
+  ...
+# Subtest: does not infer Child-SA crypto from encrypted IKE_AUTH
+ok 9 - does not infer Child-SA crypto from encrypted IKE_AUTH
+  ---
+  duration_ms: 2.2027
+  type: 'test'
+  ...
+# Subtest: unknown cryptography cannot be reported as standards compliant
+ok 10 - unknown cryptography cannot be reported as standards compliant
+  ---
+  duration_ms: 3.1213
+  type: 'test'
+  ...
+# Subtest: unknown controls reduce evidence-adjusted score and remain unverified
+ok 11 - unknown controls reduce evidence-adjusted score and remain unverified
+  ---
+  duration_ms: 0.5069
+  type: 'test'
+  ...
+# Subtest: fully evidenced approved suite receives full evidence coverage
+ok 12 - fully evidenced approved suite receives full evidence coverage
+  ---
+  duration_ms: 0.3881
+  type: 'test'
+  ...
+# Subtest: known weak fully observed configuration lowers the security score
+ok 13 - known weak fully observed configuration lowers the security score
+  ---
+  duration_ms: 0.6063
+  type: 'test'
+  ...
+# Subtest: buildGatewayTelemetrySummary marks exact SPI matches as confirmed
+ok 14 - buildGatewayTelemetrySummary marks exact SPI matches as confirmed
+  ---
+  duration_ms: 1.489
+  type: 'test'
+  ...
+# Subtest: buildGatewayTelemetrySummary keeps unknown outcomes when telemetry is unavailable
+ok 15 - buildGatewayTelemetrySummary keeps unknown outcomes when telemetry is unavailable
+  ---
+  duration_ms: 1.2586
+  type: 'test'
+  ...
+# Subtest: renders proposals, endpoints, selectors, and no credentials
+ok 16 - renders proposals, endpoints, selectors, and no credentials
+  ---
+  duration_ms: 3.2119
+  type: 'test'
+  ...
+# Subtest: manual commands are fixed and reject shell-path injection
+ok 17 - manual commands are fixed and reject shell-path injection
+  ---
+  duration_ms: 1.2308
+  type: 'test'
+  ...
+# Subtest: rejects invalid IPv4 octets, selector prefixes, IDs, and family mismatch
+ok 18 - rejects invalid IPv4 octets, selector prefixes, IDs, and family mismatch
+  ---
+  duration_ms: 0.6749
+  type: 'test'
+  ...
+# Subtest: supports correctly formatted IPv6 endpoints and selectors
+ok 19 - supports correctly formatted IPv6 endpoints and selectors
+  ---
+  duration_ms: 0.5752
+  type: 'test'
+  ...
+1..19
+# tests 19
+# suites 0
+# pass 17
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 848.7554

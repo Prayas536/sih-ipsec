@@ -1,0 +1,944 @@
+[
+  {
+    "file": "AES128_SHA256_DH14_NOPFS_ICMP_rep01.pcap",
+    "packets": 46,
+    "bytes": 8612,
+    "sha256": "58d0cf553ba55053f60cc45929797c2d4f0ec0350f8def85b1cf8c440c7003d9"
+  },
+  {
+    "file": "AES128_SHA256_DH14_NOPFS_ICMP_rep02.pcap",
+    "packets": 46,
+    "bytes": 8612,
+    "sha256": "7ee6087b935287e606c839884ce2d686518ae8f9b8808b1745ac5a93a6911916"
+  },
+  {
+    "file": "AES128_SHA256_DH14_NOPFS_ICMP_rep03.pcap",
+    "packets": 46,
+    "bytes": 8612,
+    "sha256": "11dde2d18798a782b09fb5a00a036dec78b9de377f2776190207775216c67ff2"
+  },
+  {
+    "file": "AES128_SHA256_DH14_NOPFS_ICMP_rep04.pcap",
+    "packets": 46,
+    "bytes": 8612,
+    "sha256": "f84d0d39eee8fc5f3cdf69eada23c8e0adf0ac56e519739f38641f5092d5fb3e"
+  },
+  {
+    "file": "AES128_SHA256_DH14_NOPFS_ICMP_rep05.pcap",
+    "packets": 46,
+    "bytes": 8612,
+    "sha256": "c828b1c0e170735fd9515283be1c530828fff88b369e2cd153c7ac80b3d04bdd"
+  },
+  {
+    "file": "AES128_SHA256_DH14_NOPFS_TCP_rep01.pcap",
+    "packets": 249,
+    "bytes": 35858,
+    "sha256": "1ab9b1e12ad038e6d0d774069a3628217dc18fe8bdaf83164e5be4d0e5b6ee65"
+  },
+  {
+    "file": "AES128_SHA256_DH14_NOPFS_TCP_rep02.pcap",
+    "packets": 252,
+    "bytes": 36304,
+    "sha256": "b455ada38d0d0ba9556edbad1d1ac29394a009f801fe128407ba0e3445179886"
+  },
+  {
+    "file": "AES128_SHA256_DH14_NOPFS_TCP_rep03.pcap",
+    "packets": 247,
+    "bytes": 35582,
+    "sha256": "f1c20b3586ff002b235573f9c75f024546ba6e6c7e920fae07105cc3fe237a6e"
+  },
+  {
+    "file": "AES128_SHA256_DH14_NOPFS_TCP_rep04.pcap",
+    "packets": 250,
+    "bytes": 35996,
+    "sha256": "3afee5997a72eee874336eaf7447af8cab8de2be9b851ccc31da4dc64d01b770"
+  },
+  {
+    "file": "AES128_SHA256_DH14_NOPFS_TCP_rep05.pcap",
+    "packets": 258,
+    "bytes": 37100,
+    "sha256": "f871248b17458d95be3b902e177ca541aa40438511cf8676f8bbc0feda7edf24"
+  },
+  {
+    "file": "AES128_SHA256_DH14_PFS14_ICMP_rep02.pcap",
+    "packets": 50,
+    "bytes": 9900,
+    "sha256": "6cf0600a5ce244ab4638ac303a3aac4f284cd8f99f3079743cb4184cc546e1e3"
+  },
+  {
+    "file": "AES128_SHA256_DH14_PFS14_ICMP_rep03.pcap",
+    "packets": 50,
+    "bytes": 9900,
+    "sha256": "742900fad602f61f476b5e721b82cc743e16dd23888566cbaa2ba66232965a3d"
+  },
+  {
+    "file": "AES128_SHA256_DH14_PFS14_ICMP_rep04.pcap",
+    "packets": 50,
+    "bytes": 9900,
+    "sha256": "3089c32b71a0d03dea86cee423a0cd1c2e7c39c053e8c6f027e6da8dcbc0214b"
+  },
+  {
+    "file": "AES128_SHA256_DH14_PFS14_ICMP_rep05.pcap",
+    "packets": 50,
+    "bytes": 9900,
+    "sha256": "8d5651d490e9a3ddcdf3e3947188ea465435c931d0c55e189d91ac33576c1e06"
+  },
+  {
+    "file": "AES128_SHA256_DH14_PFS14_TCP_rep01.pcap",
+    "packets": 255,
+    "bytes": 37454,
+    "sha256": "34246c01d81b0cf288692441df8bfe5cd405130e28a6cb2d00531d29dd9940d8"
+  },
+  {
+    "file": "AES128_SHA256_DH14_PFS14_TCP_rep02.pcap",
+    "packets": 257,
+    "bytes": 37714,
+    "sha256": "21b465579e08fc82fa2d008c7077f10f5aeaa4d11871468cb78cf334f7280000"
+  },
+  {
+    "file": "AES128_SHA256_DH14_PFS14_TCP_rep03.pcap",
+    "packets": 248,
+    "bytes": 36456,
+    "sha256": "d2428a3a43cc304bd5ad8e500c3bddf47346753f3c8c8dfa448e54c154354f9a"
+  },
+  {
+    "file": "AES128_SHA256_DH14_PFS14_TCP_rep04.pcap",
+    "packets": 254,
+    "bytes": 37284,
+    "sha256": "cbacf3d9a83682632b051f7879cae5cff62b7d1ffa8e87c26f6460c09615b81b"
+  },
+  {
+    "file": "AES128_SHA256_DH14_PFS14_TCP_rep05.pcap",
+    "packets": 258,
+    "bytes": 37852,
+    "sha256": "9d85d845712e65f6de70c3812c727250d7268a75576b6769f33183189f7ba17f"
+  },
+  {
+    "file": "AES128_SHA256_DH14_PFS15_ICMP_rep01.pcap",
+    "packets": 50,
+    "bytes": 10156,
+    "sha256": "e2bb713f855fa74059805961f6e0dcf0e1bf15f47b005ab3b2c6c2a8b3e64132"
+  },
+  {
+    "file": "AES128_SHA256_DH14_PFS15_ICMP_rep02.pcap",
+    "packets": 50,
+    "bytes": 10156,
+    "sha256": "244ba5499d45945601433b148a33f0bc39f1d7381755830b7fcfd5f4dcdb10a1"
+  },
+  {
+    "file": "AES128_SHA256_DH14_PFS15_ICMP_rep03.pcap",
+    "packets": 50,
+    "bytes": 10156,
+    "sha256": "cfd597ed22cb6055d467a507de3db7f2ff33c09484f189a200287dd5ef13815a"
+  },
+  {
+    "file": "AES128_SHA256_DH14_PFS15_ICMP_rep04.pcap",
+    "packets": 50,
+    "bytes": 10156,
+    "sha256": "59574151504ae82b2a3bb881496b10c4c1a6c9932aa96da23411ee787de2c1a3"
+  },
+  {
+    "file": "AES128_SHA256_DH15_NOPFS_ICMP_rep02.pcap",
+    "packets": 46,
+    "bytes": 8868,
+    "sha256": "a1ccba71f23fbf9cfcc51f0943fa448e86e0c1f8ace805b0ad18a55f8d251476"
+  },
+  {
+    "file": "AES128_SHA256_DH15_NOPFS_ICMP_rep03.pcap",
+    "packets": 46,
+    "bytes": 8868,
+    "sha256": "c5fcd6a9cdefa3bfa0c1d4aa69655de06f9412281459445e4d02faafc029ff6f"
+  },
+  {
+    "file": "AES128_SHA256_DH15_NOPFS_ICMP_rep04.pcap",
+    "packets": 46,
+    "bytes": 8868,
+    "sha256": "4d1a56a3f5f93fa1c6dbc0ea7d7fc2564cc26aecb544ee8ae281e0fdb4aa6bd0"
+  },
+  {
+    "file": "AES128_SHA256_DH15_NOPFS_ICMP_rep05.pcap",
+    "packets": 46,
+    "bytes": 8868,
+    "sha256": "88c8b4c4c953ff72a6b2a5c2b9b39941ba4be067f8bda49d746e08fa2a29c18a"
+  },
+  {
+    "file": "AES128_SHA256_DH15_PFS14_ICMP_rep01.pcap",
+    "packets": 50,
+    "bytes": 10156,
+    "sha256": "e45d1b9bb707426e730f3b60f3922f313012c71acc29b8aaaa546a50912e37f2"
+  },
+  {
+    "file": "AES128_SHA256_DH15_PFS14_ICMP_rep02.pcap",
+    "packets": 50,
+    "bytes": 10156,
+    "sha256": "cb9e75bea6fc177d89a37542f1ac38b7846d3622c6ff5dcd23f292dd95d8015f"
+  },
+  {
+    "file": "AES128_SHA256_DH15_PFS14_ICMP_rep03.pcap",
+    "packets": 50,
+    "bytes": 10156,
+    "sha256": "99effd931a996f01a1b57de636c6daf5cda25cbd2e1cdd091d123b0f1171b1b6"
+  },
+  {
+    "file": "AES128_SHA256_DH15_PFS14_ICMP_rep04.pcap",
+    "packets": 50,
+    "bytes": 10156,
+    "sha256": "48141be14c7f5ec0d0662b414ba34f378fbce10d0b40b41f6da5ebcfeaf03401"
+  },
+  {
+    "file": "AES128_SHA256_DH15_PFS14_ICMP_rep05.pcap",
+    "packets": 50,
+    "bytes": 10156,
+    "sha256": "b700db70f20ab39ea66584446426bf53680c0b0446034b522163443514c72426"
+  },
+  {
+    "file": "AES128_SHA256_DH15_PFS15_ICMP_rep01.pcap",
+    "packets": 50,
+    "bytes": 10412,
+    "sha256": "e945f7ff2b17dcb7c3750b8b86ab67b6776e5ac24e17066f451710fa9b788f0a"
+  },
+  {
+    "file": "AES128_SHA256_DH15_PFS15_ICMP_rep02.pcap",
+    "packets": 50,
+    "bytes": 10412,
+    "sha256": "2f5b0babbf7440ab90cd2253af778fc9936ae071cadcb35e354394672403727b"
+  },
+  {
+    "file": "AES128_SHA256_DH15_PFS15_ICMP_rep03.pcap",
+    "packets": 50,
+    "bytes": 10412,
+    "sha256": "f79a64fcee31c912a7854dc9a5eace729b96182d9470d580f180b185271a244d"
+  },
+  {
+    "file": "AES128_SHA256_DH15_PFS15_ICMP_rep04.pcap",
+    "packets": 50,
+    "bytes": 10412,
+    "sha256": "fdff6daeaf4a49a54f82cc2da7eb25a4037a3c2f056bcffc411e18c1f4c92a3f"
+  },
+  {
+    "file": "AES128_SHA256_DH15_PFS15_ICMP_rep05.pcap",
+    "packets": 50,
+    "bytes": 10412,
+    "sha256": "312be844ec15268c2bc7dff2bbe02c67acf8c7ee13de56bddef75d585e9ad4a0"
+  },
+  {
+    "file": "AES128_SHA256_DH15_PFS15_TCP_rep01.pcap",
+    "packets": 262,
+    "bytes": 38964,
+    "sha256": "c351e12dbb42f4ee1ef7ace2e3516d5885b75b0a4a722fefaa9b87ebd9c55adc"
+  },
+  {
+    "file": "AES128_SHA256_DH15_PFS15_TCP_rep02.pcap",
+    "packets": 256,
+    "bytes": 38072,
+    "sha256": "417adbb735a762470288209e6b677d6d8af5621c0ab7fcb543d9133a3ae0dd35"
+  },
+  {
+    "file": "AES128_SHA256_DH15_PFS15_TCP_rep03.pcap",
+    "packets": 261,
+    "bytes": 38778,
+    "sha256": "5fdf609ac0f93b03fb1ecbcfdcd0cacaac6354680b0a2c113acbb4cb28e3eb5f"
+  },
+  {
+    "file": "AES128_SHA256_DH15_PFS15_TCP_rep04.pcap",
+    "packets": 253,
+    "bytes": 37674,
+    "sha256": "dbe644c3d74bb63550f4d6f034114264764c26eceef7c1e4dfe055f599c399ad"
+  },
+  {
+    "file": "AES128_SHA256_DH15_PFS15_TCP_rep05.pcap",
+    "packets": 260,
+    "bytes": 38656,
+    "sha256": "0b6e7878d4db31047c6abbdce478c5782856a9b23affdf0e2ae66d5a75398ad4"
+  },
+  {
+    "file": "AES128_SHA384_DH14_NOPFS_ICMP_rep01.pcap",
+    "packets": 46,
+    "bytes": 8996,
+    "sha256": "96e604a552e52c24f2431e4d00a46f03cc309799f5d7a5817eb4bb7cf732007d"
+  },
+  {
+    "file": "AES128_SHA384_DH14_NOPFS_ICMP_rep02.pcap",
+    "packets": 46,
+    "bytes": 8996,
+    "sha256": "534e60e8ba16de8258eaafc6d3847ae6de155cba8aa4bdd1a31c2f2096f71533"
+  },
+  {
+    "file": "AES128_SHA384_DH14_NOPFS_ICMP_rep03.pcap",
+    "packets": 46,
+    "bytes": 8996,
+    "sha256": "c75eb5bb1d64d775ce0457f1c325c96e94c8faad93cc7b30b9b023b640883357"
+  },
+  {
+    "file": "AES128_SHA384_DH14_NOPFS_ICMP_rep04.pcap",
+    "packets": 46,
+    "bytes": 8996,
+    "sha256": "f809e6c85f35bd7808bf45afcc131a95e52f0c37524a28d334dd5003d06a9a6e"
+  },
+  {
+    "file": "AES128_SHA384_DH14_NOPFS_ICMP_rep05.pcap",
+    "packets": 46,
+    "bytes": 8996,
+    "sha256": "0f1fd6ad2dc3018ac8a7c3aaf30db71bebb0eea4703f24d333422fbf3ab68c2e"
+  },
+  {
+    "file": "AES128_SHA384_DH14_PFS14_ICMP_rep01.pcap",
+    "packets": 50,
+    "bytes": 10316,
+    "sha256": "afe74f27c2770e93454cec6ffd746ce4901ca3374357b6bdcf81a81861ec0bf4"
+  },
+  {
+    "file": "AES128_SHA384_DH14_PFS14_ICMP_rep02.pcap",
+    "packets": 50,
+    "bytes": 10316,
+    "sha256": "8dd258c8579bd37b2a496790d13331895c6cafed31aafa9ed38006ffb7d133bc"
+  },
+  {
+    "file": "AES128_SHA384_DH14_PFS14_ICMP_rep03.pcap",
+    "packets": 50,
+    "bytes": 10316,
+    "sha256": "380e164d80bc0b08512ec718d2d548b434cb437f33772d5ef0034efd7d2c882f"
+  },
+  {
+    "file": "AES128_SHA384_DH14_PFS14_ICMP_rep04.pcap",
+    "packets": 50,
+    "bytes": 10316,
+    "sha256": "36658050cb29e45a7a0aa7654c1689c3a5942e6de697fd749fd0ef0ea35bac12"
+  },
+  {
+    "file": "AES128_SHA384_DH14_PFS14_ICMP_rep05.pcap",
+    "packets": 50,
+    "bytes": 10316,
+    "sha256": "c7f47f76604874fc53e8768568cbad1820ee48ab742e5b5d07ba9b2ff9327a2e"
+  },
+  {
+    "file": "AES128_SHA384_DH14_PFS15_ICMP_rep01.pcap",
+    "packets": 50,
+    "bytes": 10572,
+    "sha256": "22091bd6cc4f2eb701f8ec3f0a4ff6d55ad7ddec7b42d84ea9f99ef1e8c3a94f"
+  },
+  {
+    "file": "AES128_SHA384_DH14_PFS15_ICMP_rep02.pcap",
+    "packets": 50,
+    "bytes": 10572,
+    "sha256": "fb7e5fd9aef7d067de74e0674f9b24c8805cce5aa46ba19d7b6b8104ef2d1e82"
+  },
+  {
+    "file": "AES128_SHA384_DH14_PFS15_ICMP_rep03.pcap",
+    "packets": 50,
+    "bytes": 10572,
+    "sha256": "502c5877049cbc7906f60d53af8a9b706c78565cb59610170d3afd3f4e9c34a7"
+  },
+  {
+    "file": "AES128_SHA384_DH14_PFS15_ICMP_rep04.pcap",
+    "packets": 50,
+    "bytes": 10572,
+    "sha256": "03e86fa38921f03d5f3b60999e0a2577e396fe946b74ad9790a9140860714958"
+  },
+  {
+    "file": "AES128_SHA384_DH14_PFS15_ICMP_rep05.pcap",
+    "packets": 48,
+    "bytes": 10312,
+    "sha256": "38aebbb5eb8f8c7dd16a7310ea829c5832d1cad812dd729d803d99390fccff95"
+  },
+  {
+    "file": "AES128_SHA384_DH15_NOPFS_ICMP_rep01.pcap",
+    "packets": 46,
+    "bytes": 9252,
+    "sha256": "7097fffe8f132f895c09b52e4ea5a3e06f4b76a1facea6cd3c161c4bac4efd5b"
+  },
+  {
+    "file": "AES128_SHA384_DH15_NOPFS_ICMP_rep02.pcap",
+    "packets": 46,
+    "bytes": 9252,
+    "sha256": "36d646fe740d594658e2d504401b536652a017b5e91704f684d8d9b5207bff2d"
+  },
+  {
+    "file": "AES128_SHA384_DH15_NOPFS_ICMP_rep03.pcap",
+    "packets": 46,
+    "bytes": 9252,
+    "sha256": "c3267ec48001c78d12dcd133ddb049a3f8f160f0f886e2282957a5e00515c880"
+  },
+  {
+    "file": "AES128_SHA384_DH15_NOPFS_ICMP_rep04.pcap",
+    "packets": 46,
+    "bytes": 9252,
+    "sha256": "982daa5374a640850b7c648bd49b76140596689db256aa37d0bd9455626df562"
+  },
+  {
+    "file": "AES128_SHA384_DH15_NOPFS_ICMP_rep05.pcap",
+    "packets": 46,
+    "bytes": 9252,
+    "sha256": "f4538706de1b37c2d63f756a6e2efcfd2e6d641c5b65f151d3840aa1c9d7006a"
+  },
+  {
+    "file": "AES128_SHA384_DH15_PFS14_ICMP_rep01.pcap",
+    "packets": 50,
+    "bytes": 10572,
+    "sha256": "b1fcfbae32451577a847f16cac54ad5a54b17ce9aa29f6a23b87c212e60728d7"
+  },
+  {
+    "file": "AES128_SHA384_DH15_PFS14_ICMP_rep03.pcap",
+    "packets": 50,
+    "bytes": 10572,
+    "sha256": "c3d0f2dc563adef610b61114f765ebb98b5e3d798fea89f37f6730938e65df9e"
+  },
+  {
+    "file": "AES128_SHA384_DH15_PFS14_ICMP_rep04.pcap",
+    "packets": 52,
+    "bytes": 10832,
+    "sha256": "195d295930ee9df4ca2d98b8be566983f5a328d037b91099793345a95756ded0"
+  },
+  {
+    "file": "AES128_SHA384_DH15_PFS15_ICMP_rep01.pcap",
+    "packets": 50,
+    "bytes": 10828,
+    "sha256": "3ceca5b798b41ab87c62503a9fc246257e31c325316d879dc54614dd03ecb91b"
+  },
+  {
+    "file": "AES128_SHA384_DH15_PFS15_ICMP_rep02.pcap",
+    "packets": 50,
+    "bytes": 10828,
+    "sha256": "298b0998f9b9e7fc5aa7acc6fc62ba043ededed53f68ea536994d6b9092d429d"
+  },
+  {
+    "file": "AES128_SHA384_DH15_PFS15_ICMP_rep03.pcap",
+    "packets": 48,
+    "bytes": 10568,
+    "sha256": "ef9cdb0b0ac0832a90720db17e9116f9c77082ff1f0112860cbb18fc869872ad"
+  },
+  {
+    "file": "AES128_SHA384_DH15_PFS15_ICMP_rep04.pcap",
+    "packets": 50,
+    "bytes": 10828,
+    "sha256": "09d7917caf6a81f99c4e8b8baf93d3d4bab10f8d95ea0e44053393f1775e7f27"
+  },
+  {
+    "file": "AES128_SHA384_DH15_PFS15_ICMP_rep05.pcap",
+    "packets": 50,
+    "bytes": 10828,
+    "sha256": "ef9ca34d5edd81b7a877a55ed66a6adee116efad2de3a36217886beada3aab71"
+  },
+  {
+    "file": "AES256_SHA256_DH14_NOPFS_ICMP_rep01.pcap",
+    "packets": 46,
+    "bytes": 8612,
+    "sha256": "9b28355bb808989d5212c25bca80b9945fbcff65beb6b5bd1a2d0d013d3ebbff"
+  },
+  {
+    "file": "AES256_SHA256_DH14_NOPFS_ICMP_rep02.pcap",
+    "packets": 46,
+    "bytes": 8612,
+    "sha256": "04735091cc43a7df59ec324e913e1fb284ec9037071a9f732c802c5b05fc0861"
+  },
+  {
+    "file": "AES256_SHA256_DH14_NOPFS_ICMP_rep03.pcap",
+    "packets": 46,
+    "bytes": 8612,
+    "sha256": "6a480c88f386c62b95a92ca9915bf4b4b5c9833d1cfb211a3ba4660f65a46600"
+  },
+  {
+    "file": "AES256_SHA256_DH14_NOPFS_ICMP_rep04.pcap",
+    "packets": 46,
+    "bytes": 8612,
+    "sha256": "0efa114faa259e3a0685190cec19f741ceba8fbff34efbdd191bec1e78906d15"
+  },
+  {
+    "file": "AES256_SHA256_DH14_NOPFS_ICMP_rep05.pcap",
+    "packets": 48,
+    "bytes": 8856,
+    "sha256": "6bf2b1064714ed6483ebbb4b3cdf7b3c44743cbb74ebd678c3acec3f11ed700d"
+  },
+  {
+    "file": "AES256_SHA256_DH14_NOPFS_TCP_rep01.pcap",
+    "packets": 260,
+    "bytes": 37408,
+    "sha256": "109066c8e9049e0d66dbe5e9824e24c6182f3a55f4bcecd5219cd9ffb83062cc"
+  },
+  {
+    "file": "AES256_SHA256_DH14_NOPFS_TCP_rep02.pcap",
+    "packets": 265,
+    "bytes": 38146,
+    "sha256": "39ae0ebe13789046d64559fcd1cf981b786b56a92d345b3352201f564675e8ba"
+  },
+  {
+    "file": "AES256_SHA256_DH14_NOPFS_TCP_rep03.pcap",
+    "packets": 267,
+    "bytes": 38342,
+    "sha256": "cf8ebf95e0a0790305eea3cb94f12afc9186c00c241cd3ffdf79d011da1902bd"
+  },
+  {
+    "file": "AES256_SHA256_DH14_NOPFS_TCP_rep04.pcap",
+    "packets": 259,
+    "bytes": 37286,
+    "sha256": "66f753d0309abb0563764c4431c086940726faa0f9105befa8f35fef00b2ee23"
+  },
+  {
+    "file": "AES256_SHA256_DH14_NOPFS_TCP_rep05.pcap",
+    "packets": 254,
+    "bytes": 36596,
+    "sha256": "ae68359f619c4b678b94db7927ff7b2078da2907c73a408c09507a5196cf2564"
+  },
+  {
+    "file": "AES256_SHA256_DH14_PFS14_ICMP_rep01.pcap",
+    "packets": 50,
+    "bytes": 9900,
+    "sha256": "13901a5c9ff1ca5f32db978ae2dd32cb1e023e898c959e2c5909a0d621389450"
+  },
+  {
+    "file": "AES256_SHA256_DH14_PFS14_ICMP_rep02.pcap",
+    "packets": 50,
+    "bytes": 9900,
+    "sha256": "1c0c25938ba971ce56a07c403136cca5c204da7263ddbef0c453660e0c12dba6"
+  },
+  {
+    "file": "AES256_SHA256_DH14_PFS14_ICMP_rep03.pcap",
+    "packets": 50,
+    "bytes": 9900,
+    "sha256": "2d61c14b47334b0fc4028c10754dd6072758c858a19269b427405cc3295ed7af"
+  },
+  {
+    "file": "AES256_SHA256_DH14_PFS14_ICMP_rep04.pcap",
+    "packets": 50,
+    "bytes": 9900,
+    "sha256": "8efe16bda5f6cf9811581dde11519ea639b41b5a5298d940272befec4bba84ac"
+  },
+  {
+    "file": "AES256_SHA256_DH14_PFS14_ICMP_rep05.pcap",
+    "packets": 50,
+    "bytes": 9900,
+    "sha256": "4e91ee1cb0226cb2eb7576a43da4646d1434d1a4e37f8f092a5977dc61d7e031"
+  },
+  {
+    "file": "AES256_SHA256_DH14_PFS14_TCP_rep01.pcap",
+    "packets": 264,
+    "bytes": 38712,
+    "sha256": "9e32c1e295ff27f828a956b6868d3810de928caad7b49a13e542b39e4040d6d9"
+  },
+  {
+    "file": "AES256_SHA256_DH14_PFS14_TCP_rep02.pcap",
+    "packets": 253,
+    "bytes": 37178,
+    "sha256": "4535a2e1e9e91d93498d1969b262ef0e27dd4df3d5c0f7583e61cc48b78642e8"
+  },
+  {
+    "file": "AES256_SHA256_DH14_PFS14_TCP_rep03.pcap",
+    "packets": 254,
+    "bytes": 37284,
+    "sha256": "b1bc586fc43e1acf3c06f87b1be170d8e04cae03eefae4d5cd6b86a79154776b"
+  },
+  {
+    "file": "AES256_SHA256_DH14_PFS14_TCP_rep04.pcap",
+    "packets": 250,
+    "bytes": 36748,
+    "sha256": "8d7b3af39aa84ea634255ca57f578ba781284ceb658fe739e8d606a0133bb5f1"
+  },
+  {
+    "file": "AES256_SHA256_DH14_PFS14_TCP_rep05.pcap",
+    "packets": 257,
+    "bytes": 37698,
+    "sha256": "d2caebd389c8c3fe5600a9ea1700fd78911c4f44e2f5201cdb5d67b7a209e406"
+  },
+  {
+    "file": "AES256_SHA256_DH14_PFS15_ICMP_rep01.pcap",
+    "packets": 50,
+    "bytes": 10156,
+    "sha256": "b7fb55f166fa7b609d71a66ec225870d351f71ce990c06c4fed63c23bfb7082d"
+  },
+  {
+    "file": "AES256_SHA256_DH14_PFS15_ICMP_rep02.pcap",
+    "packets": 52,
+    "bytes": 10400,
+    "sha256": "1febdcf57512aa6715ab6324345bffa84143df9f43fec8bbd24b1cc11fd86dbe"
+  },
+  {
+    "file": "AES256_SHA256_DH14_PFS15_ICMP_rep03.pcap",
+    "packets": 50,
+    "bytes": 10156,
+    "sha256": "6ad42c8c39a2463a491d91fff39a8c068148393137d62d536e33763758775ba2"
+  },
+  {
+    "file": "AES256_SHA256_DH14_PFS15_ICMP_rep04.pcap",
+    "packets": 50,
+    "bytes": 10156,
+    "sha256": "c1cbf463a43e8448591745abf88a9d101831daf9c1f843a7174bf85d2e20ea74"
+  },
+  {
+    "file": "AES256_SHA256_DH14_PFS15_ICMP_rep05.pcap",
+    "packets": 50,
+    "bytes": 10156,
+    "sha256": "115673f0143cd8f5c10048663778b4c1613d67e92ac1113bed729da750701bfb"
+  },
+  {
+    "file": "AES256_SHA256_DH14_PFS15_TCP_rep01.pcap",
+    "packets": 253,
+    "bytes": 37434,
+    "sha256": "d14a737e89bf09453c73729759a804c86838a87b1bf9e9e39feb8d4d46d57a51"
+  },
+  {
+    "file": "AES256_SHA256_DH14_PFS15_TCP_rep02.pcap",
+    "packets": 261,
+    "bytes": 38570,
+    "sha256": "1b74a9440260aef4949e4f4038fe117e7f138b1d0882960026cc12debc6dfa09"
+  },
+  {
+    "file": "AES256_SHA256_DH14_PFS15_TCP_rep03.pcap",
+    "packets": 193,
+    "bytes": 29010,
+    "sha256": "554dbbd323f04d868f1aad79cfa40f6e1783eb39e48dc0dcd0670a07d3ad09dd"
+  },
+  {
+    "file": "AES256_SHA256_DH14_PFS15_TCP_rep04.pcap",
+    "packets": 250,
+    "bytes": 36988,
+    "sha256": "0cc759932ba9bdccd9731af18755febadc79d635b340c6ae2427df110f31f3f5"
+  },
+  {
+    "file": "AES256_SHA256_DH14_PFS15_TCP_rep05.pcap",
+    "packets": 255,
+    "bytes": 37694,
+    "sha256": "80f6045862d8f4f454504a5c3c48de79bb633dc775626120089c7eedf06ca286"
+  },
+  {
+    "file": "AES256_SHA256_DH15_NOPFS_ICMP_rep01.pcap",
+    "packets": 46,
+    "bytes": 8868,
+    "sha256": "2282add2f13403fc6cfeaeb1a1ca9e328c1877ae4f4afa1cc1c9dd015d99a532"
+  },
+  {
+    "file": "AES256_SHA256_DH15_NOPFS_ICMP_rep02.pcap",
+    "packets": 46,
+    "bytes": 8868,
+    "sha256": "5bf255ce4cd7bf9276b5582d3de7554d19740f3627adfb609ef63520a699efca"
+  },
+  {
+    "file": "AES256_SHA256_DH15_NOPFS_ICMP_rep03.pcap",
+    "packets": 44,
+    "bytes": 8528,
+    "sha256": "874437fde0a1b1ec22039bd9d1685deb3db5fb3270ad030b5ad590ded4865d4d"
+  },
+  {
+    "file": "AES256_SHA256_DH15_NOPFS_ICMP_rep04.pcap",
+    "packets": 46,
+    "bytes": 8868,
+    "sha256": "90f15dbe4da1271d92c2d7baf00b83d503944976371c601e0d58bcfbcda3a417"
+  },
+  {
+    "file": "AES256_SHA256_DH15_NOPFS_ICMP_rep05.pcap",
+    "packets": 44,
+    "bytes": 8528,
+    "sha256": "2e0dcc6b32f077136d23c933a0763d789917952a3ec12c937ef0e4c58700bfc1"
+  },
+  {
+    "file": "AES256_SHA256_DH15_PFS14_ICMP_rep01.pcap",
+    "packets": 50,
+    "bytes": 10156,
+    "sha256": "efdf8d997c9951b58e9165ff76f598fbb8e3e24a2c842daa0241eb9c9f7620ec"
+  },
+  {
+    "file": "AES256_SHA256_DH15_PFS14_ICMP_rep02.pcap",
+    "packets": 50,
+    "bytes": 10156,
+    "sha256": "6021daeef8568f031f15b416cd4b9cb2286f2f35e198b83519234fb5d5d46779"
+  },
+  {
+    "file": "AES256_SHA256_DH15_PFS14_ICMP_rep03.pcap",
+    "packets": 50,
+    "bytes": 10156,
+    "sha256": "7616f2e607180ca92d835095e31aa791b539e7b8dfa0b99d9e4cdab3c8e4f436"
+  },
+  {
+    "file": "AES256_SHA256_DH15_PFS14_ICMP_rep05.pcap",
+    "packets": 50,
+    "bytes": 10156,
+    "sha256": "3fbbf23cb0d18768585c78ab632d4eec2febaf825d1e2b2f6eadab0a7c5a0930"
+  },
+  {
+    "file": "AES256_SHA256_DH15_PFS14_TCP_rep01.pcap",
+    "packets": 255,
+    "bytes": 37710,
+    "sha256": "46b1486808c833bf99123baa17bd3f9562e2511564d6c952c07ebc34622ec264"
+  },
+  {
+    "file": "AES256_SHA256_DH15_PFS14_TCP_rep02.pcap",
+    "packets": 252,
+    "bytes": 37264,
+    "sha256": "1efe07446e88aef663ba8339887827cde8e29d0cb87eac95a005a7d03cba27cb"
+  },
+  {
+    "file": "AES256_SHA256_DH15_PFS14_TCP_rep03.pcap",
+    "packets": 249,
+    "bytes": 36850,
+    "sha256": "be42f32ef03a416ebc2ad45ed7eda140750e475d67371ad9d83b6dba293ed346"
+  },
+  {
+    "file": "AES256_SHA256_DH15_PFS14_TCP_rep04.pcap",
+    "packets": 256,
+    "bytes": 37816,
+    "sha256": "4230a47fff277eb8404d9cc8924335c5b02f045eea355b2b197ba159ecbd8225"
+  },
+  {
+    "file": "AES256_SHA256_DH15_PFS14_TCP_rep05.pcap",
+    "packets": 256,
+    "bytes": 37816,
+    "sha256": "f33cd4d91b8c0e5f163c69582076abd5db900248cd4fdca4d2bae98192deca20"
+  },
+  {
+    "file": "AES256_SHA256_DH15_PFS15_ICMP_rep01.pcap",
+    "packets": 50,
+    "bytes": 10412,
+    "sha256": "925626174651ed619d50c40bc154248d19316d070566c5640054bd5d0110f19e"
+  },
+  {
+    "file": "AES256_SHA256_DH15_PFS15_ICMP_rep02.pcap",
+    "packets": 50,
+    "bytes": 10412,
+    "sha256": "edab749d42c8cbf4389e4717ffe24c74665b3772d2d87ad4724a3a65eba8055d"
+  },
+  {
+    "file": "AES256_SHA256_DH15_PFS15_ICMP_rep03.pcap",
+    "packets": 52,
+    "bytes": 10656,
+    "sha256": "4fb996eab78f61a3b63b7c4da492b406eccde8bd9eda6b2d796bdd65037e568b"
+  },
+  {
+    "file": "AES256_SHA256_DH15_PFS15_ICMP_rep04.pcap",
+    "packets": 52,
+    "bytes": 10656,
+    "sha256": "f60ab62cc10e446e29ff70aef54cfdff0f250fe55ac72f6c220d0db3c241ced8"
+  },
+  {
+    "file": "AES256_SHA256_DH15_PFS15_ICMP_rep05.pcap",
+    "packets": 50,
+    "bytes": 10412,
+    "sha256": "c79e0de6e1c85a6a278d5e94d68a56dc9056a4b157e6102f141a575255430877"
+  },
+  {
+    "file": "AES256_SHA384_DH14_NOPFS_ICMP_rep01.pcap",
+    "packets": 46,
+    "bytes": 8996,
+    "sha256": "f0c515224d09a345c95142b30410ce4e09887cb14f627bbe76b9d99532eebf4e"
+  },
+  {
+    "file": "AES256_SHA384_DH14_NOPFS_ICMP_rep02.pcap",
+    "packets": 44,
+    "bytes": 8640,
+    "sha256": "cc70f8c3116e35af4a7f4069e32f8d18c8606348c39406ca8478c426dbd78472"
+  },
+  {
+    "file": "AES256_SHA384_DH14_NOPFS_ICMP_rep03.pcap",
+    "packets": 46,
+    "bytes": 8996,
+    "sha256": "fb7ff2eb917ba75b37da57f945c163a1676a8b88c7c82dca2825d47c7d422d07"
+  },
+  {
+    "file": "AES256_SHA384_DH14_NOPFS_ICMP_rep04.pcap",
+    "packets": 46,
+    "bytes": 8996,
+    "sha256": "8e3f8ee43ded287ad667e9e5b1b6e5d83b31b678cc1bd0ef85b2ac9ffa3fbc3b"
+  },
+  {
+    "file": "AES256_SHA384_DH14_NOPFS_ICMP_rep05.pcap",
+    "packets": 46,
+    "bytes": 8996,
+    "sha256": "b88cb0a0a235a1924cfbd645ccb59b79fd51dbb2e8a384129991d23949952a82"
+  },
+  {
+    "file": "AES256_SHA384_DH14_PFS14_ICMP_rep01.pcap",
+    "packets": 52,
+    "bytes": 10576,
+    "sha256": "66c27c84e152244312d7ab734258c788ba498a7aa280b45ec25a6ff44b40201b"
+  },
+  {
+    "file": "AES256_SHA384_DH14_PFS14_ICMP_rep02.pcap",
+    "packets": 50,
+    "bytes": 10316,
+    "sha256": "8f35ac7e868a3d53ded2da53dea0e90c77e016cea349bad7735083ebc82398d4"
+  },
+  {
+    "file": "AES256_SHA384_DH14_PFS14_ICMP_rep03.pcap",
+    "packets": 50,
+    "bytes": 10316,
+    "sha256": "480b6c9cc68ef767662895cdba50b443117cced4954abc66bebafe0a64403f74"
+  },
+  {
+    "file": "AES256_SHA384_DH14_PFS14_ICMP_rep04.pcap",
+    "packets": 50,
+    "bytes": 10316,
+    "sha256": "450bc209995c8615b8ffa337e176843807c70313cbfd256312a9ff4fa091874e"
+  },
+  {
+    "file": "AES256_SHA384_DH14_PFS14_ICMP_rep05.pcap",
+    "packets": 52,
+    "bytes": 10576,
+    "sha256": "3fb2caed6af63ebd62997f98b9044ddb464be018cded0611d40d9ff7421ae500"
+  },
+  {
+    "file": "AES256_SHA384_DH14_PFS14_TCP_rep01.pcap",
+    "packets": 251,
+    "bytes": 38910,
+    "sha256": "24af989acadddc91c0a68b49072bffe6c83a3ea7902fba99cffea956ca4be92c"
+  },
+  {
+    "file": "AES256_SHA384_DH14_PFS14_TCP_rep03.pcap",
+    "packets": 249,
+    "bytes": 38602,
+    "sha256": "5cc6d689ad55e228d0c5e25a147c77b35be0692d2130cffdd8f8c5150340cf6e"
+  },
+  {
+    "file": "AES256_SHA384_DH14_PFS14_TCP_rep04.pcap",
+    "packets": 249,
+    "bytes": 38602,
+    "sha256": "53d5b6f117b7904e469e119d394cd857995aa8a70d986afbe7343ad01a95740b"
+  },
+  {
+    "file": "AES256_SHA384_DH14_PFS14_TCP_rep05.pcap",
+    "packets": 258,
+    "bytes": 39948,
+    "sha256": "9376ad5735ffd264452597a7cb4546a2ea70b597a82266ccbd0a082eee0b2ee7"
+  },
+  {
+    "file": "AES256_SHA384_DH14_PFS15_ICMP_rep01.pcap",
+    "packets": 48,
+    "bytes": 10216,
+    "sha256": "5e62f2138274ed87ff6ae7ba2dd305e0394834daf335c5a804640ae7e37b37c1"
+  },
+  {
+    "file": "AES256_SHA384_DH14_PFS15_ICMP_rep02.pcap",
+    "packets": 52,
+    "bytes": 10832,
+    "sha256": "5677c4baad222d5da1074e7de6747f614bea577e2394afab76afea6137f44e33"
+  },
+  {
+    "file": "AES256_SHA384_DH14_PFS15_ICMP_rep03.pcap",
+    "packets": 50,
+    "bytes": 10572,
+    "sha256": "966176218d8f477230f6141b9660a26f7896b8074c3ef98c0a432d11dc2569c1"
+  },
+  {
+    "file": "AES256_SHA384_DH14_PFS15_ICMP_rep04.pcap",
+    "packets": 50,
+    "bytes": 10572,
+    "sha256": "8501cb15877e16eb97e5fae8ec92348f0df745ad5c5c6fa3c7925ec5f26fe746"
+  },
+  {
+    "file": "AES256_SHA384_DH14_PFS15_ICMP_rep05.pcap",
+    "packets": 50,
+    "bytes": 10572,
+    "sha256": "6f2e69893d1ea3ed493705cc8f8feafaa71b49e4adebf49ee02e50b09b38dae1"
+  },
+  {
+    "file": "AES256_SHA384_DH15_NOPFS_ICMP_rep02.pcap",
+    "packets": 44,
+    "bytes": 8992,
+    "sha256": "35d394b0d1eaea4c8258cea26dc7906ba042e7f9402fa45437c8588091dc2f10"
+  },
+  {
+    "file": "AES256_SHA384_DH15_NOPFS_ICMP_rep03.pcap",
+    "packets": 46,
+    "bytes": 9252,
+    "sha256": "7eb55f94efc135547758d74f1a48220b3499d0db9a91370dd7a132e1266947dc"
+  },
+  {
+    "file": "AES256_SHA384_DH15_NOPFS_ICMP_rep04.pcap",
+    "packets": 46,
+    "bytes": 9252,
+    "sha256": "41ac5ee6d8b1d0317a438d7520e9d2ff3746e734556eefabc0962c5ce5f111ed"
+  },
+  {
+    "file": "AES256_SHA384_DH15_NOPFS_ICMP_rep05.pcap",
+    "packets": 46,
+    "bytes": 9252,
+    "sha256": "55185da30503dd3982025e6e04f73ea86d7822a243cee6bcae54bd53835c90e7"
+  },
+  {
+    "file": "AES256_SHA384_DH15_PFS14_ICMP_rep01.pcap",
+    "packets": 50,
+    "bytes": 10572,
+    "sha256": "d5be84b4d027d531835f098f89d8e93dc24ecf6d7b8a4d4a428462e961df2e61"
+  },
+  {
+    "file": "AES256_SHA384_DH15_PFS14_ICMP_rep02.pcap",
+    "packets": 50,
+    "bytes": 10572,
+    "sha256": "bb7d71f9e6c4b2fc370dbbad93b3c206a2444e0cbb565df34990e9a80011b3a2"
+  },
+  {
+    "file": "AES256_SHA384_DH15_PFS14_ICMP_rep03.pcap",
+    "packets": 50,
+    "bytes": 10572,
+    "sha256": "54c06659591208cd0a049ef46ded08315e066aa5e1313ed563ff1d78d1da4876"
+  },
+  {
+    "file": "AES256_SHA384_DH15_PFS14_ICMP_rep04.pcap",
+    "packets": 48,
+    "bytes": 10216,
+    "sha256": "4cafc2665f7d0cfb0c192f310e9be23014ebc389b2173c1629406a4d96a0d5af"
+  },
+  {
+    "file": "AES256_SHA384_DH15_PFS14_ICMP_rep05.pcap",
+    "packets": 48,
+    "bytes": 10312,
+    "sha256": "8dccde25c78b8d778967c6c38c2655e701b0e74dd549f45eeecc54dea7ce12bf"
+  },
+  {
+    "file": "AES256_SHA384_DH15_PFS15_ICMP_rep01.pcap",
+    "packets": 50,
+    "bytes": 10828,
+    "sha256": "8646aebcf47d8403440efa501bc251d26ff1b557eac89bbdfb24788127a4e11e"
+  },
+  {
+    "file": "AES256_SHA384_DH15_PFS15_ICMP_rep02.pcap",
+    "packets": 50,
+    "bytes": 10828,
+    "sha256": "a45d2271b110f704286a901ef9e3d9893dd18ce0e32468bdc00712b689987b9b"
+  },
+  {
+    "file": "AES256_SHA384_DH15_PFS15_ICMP_rep03.pcap",
+    "packets": 50,
+    "bytes": 10828,
+    "sha256": "40d5aaf2c7cccc04c9dc0c3b4b012844b1c3e817608f709d25b7c7fc197b0296"
+  },
+  {
+    "file": "AES256_SHA384_DH15_PFS15_ICMP_rep04.pcap",
+    "packets": 50,
+    "bytes": 10828,
+    "sha256": "e88f2d1c4d979c0c1bdd10247790f84ae7075cd254785ff8724990cc353d628e"
+  },
+  {
+    "file": "AES256_SHA384_DH15_PFS15_ICMP_rep05.pcap",
+    "packets": 50,
+    "bytes": 10828,
+    "sha256": "166f98c6feb0021d2773e28e2643c0bf698ad4079410eb4b41ff589a0ad5ec72"
+  },
+  {
+    "file": "AES256_SHA384_DH15_PFS15_TCP_rep01.pcap",
+    "packets": 262,
+    "bytes": 41028,
+    "sha256": "1e661565dbf67e3e6a4c4a69e05cf5fab50bd321e1a3442e01ac6a4fbf90667b"
+  },
+  {
+    "file": "AES256_SHA384_DH15_PFS15_TCP_rep02.pcap",
+    "packets": 257,
+    "bytes": 40282,
+    "sha256": "0b0b6bb7da25e5bd601da54cded99f423329f2595d34e8358c5a4a2609c8bf3c"
+  },
+  {
+    "file": "AES256_SHA384_DH15_PFS15_TCP_rep03.pcap",
+    "packets": 259,
+    "bytes": 40574,
+    "sha256": "4aba2519a3680f94fbbf854b6caec3845751a6d2b14dee5fbd81edcfd242a89f"
+  },
+  {
+    "file": "AES256_SHA384_DH15_PFS15_TCP_rep04.pcap",
+    "packets": 254,
+    "bytes": 39844,
+    "sha256": "a2a906711bb546de40272adb00397a0b946c0e2205e482d79c6cf8a65420bf73"
+  },
+  {
+    "file": "AES256_SHA384_DH15_PFS15_TCP_rep05.pcap",
+    "packets": 252,
+    "bytes": 39568,
+    "sha256": "ee272b906190b869ea96c5f1c1e333f676016426b0f8f9c75965d220e4265e77"
+  }
+]

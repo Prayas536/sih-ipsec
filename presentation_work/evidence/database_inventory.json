@@ -1,0 +1,33 @@
+[
+  {
+    "file": "data\\analyzer.sqlite3",
+    "tables": {
+      "analysis_sessions": 42,
+      "packet_evidence": 8278,
+      "sqlite_sequence": 4,
+      "gateway_telemetry": 2,
+      "gateways": 1,
+      "gateway_enrollment_tokens": 1,
+      "gateway_telemetry_history": 3022
+    }
+  },
+  {
+    "file": "server\\data\\analyzer.sqlite3",
+    "tables": {
+      "analysis_sessions": 0,
+      "packet_evidence": 0,
+      "sqlite_sequence": 0,
+      "gateway_telemetry": 0,
+      "gateways": 0,
+      "gateway_enrollment_tokens": 0,
+      "gateway_telemetry_history": 0
+    }
+  },
+  {
+    "file": "backend\\data\\metadata.sqlite3",
+    "tables": {
+      "captures": 539,
+      "analysis_jobs": 77
+    }
+  }
+]
