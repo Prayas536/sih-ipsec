@@ -610,7 +610,10 @@ def start_capture(
     filter_expression = (
         "udp port 500 or "
         "udp port 4500 or "
-        "ip proto 50"
+        "ip proto 50 or "
+        "ip proto 51 or "
+        "ip6 protochain 50 or "
+        "ip6 protochain 51"
     )
 
     sudo(
@@ -2572,7 +2575,10 @@ def create_metadata(
                 (
                     "udp port 500 or "
                     "udp port 4500 or "
-                    "ip proto 50"
+                    "ip proto 50 or "
+                    "ip proto 51 or "
+                    "ip6 protochain 50 or "
+                    "ip6 protochain 51"
                 ),
 
             "file":

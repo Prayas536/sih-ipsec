@@ -24,6 +24,35 @@ test('unknown cryptography cannot be reported as standards compliant', () => {
   assert.equal(scorecard.complianceNist, null);
   assert.equal(scorecard.complianceRfc8221, null);
   assert.equal(scorecard.complianceNsaCnsa, null);
+  assert.ok(scorecard.findings.some((finding) => finding.id === 'F-PFS-UNKNOWN'));
+});
+
+test('unsupported non-empty transforms remain unassessed and cannot pass', () => {
+  const scorecard = auditIpsecSecurity({
+    ikeVersion: 'IKEv2',
+    operationalMode: 'Not determined from capture',
+    ipVersion: 'IPv4',
+    encryptionAlgorithm: 'UNLISTED-DESIGN-7',
+    encryptionKeyBits: 256,
+    authIntegrityAlgorithm: 'UNLISTED-MAC-9',
+    dhGroup: 'Group 19',
+    dhGroupNumber: 19,
+    dhBits: 256,
+    pfsEnabled: null,
+    keyLifetimeSeconds: null,
+    replayProtection: null,
+    initiatorSpi: '0x1',
+    responderSpi: 'Not observed in capture',
+    proposals: [],
+  });
+
+  assert.ok(scorecard.findings.some((finding) => finding.id === 'F-ENC-UNKNOWN-TRANSFORM'));
+  assert.ok(scorecard.findings.some((finding) => finding.id === 'F-AUTH-UNKNOWN-TRANSFORM'));
+  assert.equal(scorecard.findings.some((finding) => finding.id === 'F-ENC-PASS'), false);
+  assert.equal(scorecard.evidenceCoveragePercent, 25);
+  assert.equal(scorecard.complianceNist, null);
+  assert.equal(scorecard.complianceRfc8221, null);
+  assert.equal(scorecard.complianceNsaCnsa, null);
 });
 
 test('unknown controls reduce evidence-adjusted score and remain unverified', () => {
@@ -77,6 +106,30 @@ test('fully evidenced approved suite receives full evidence coverage', () => {
   assert.equal(scorecard.evidenceCoveragePercent, 100);
   assert.equal(scorecard.assessmentStatus, 'COMPLETE');
   assert.equal(scorecard.complianceNist, true);
+});
+
+test('long observed SA lifetime cannot pass the NIST assessment flag', () => {
+  const scorecard = auditIpsecSecurity({
+    ikeVersion: 'IKEv2',
+    operationalMode: 'Tunnel Mode',
+    ipVersion: 'IPv4',
+    encryptionAlgorithm: 'AES-256-CBC',
+    encryptionKeyBits: 256,
+    authIntegrityAlgorithm: 'HMAC-SHA256',
+    dhGroup: 'MODP_3072',
+    dhGroupNumber: 15,
+    dhBits: 3072,
+    pfsEnabled: true,
+    keyLifetimeSeconds: 86400,
+    replayProtection: true,
+    replayWindowSize: 64,
+    initiatorSpi: '0x1',
+    responderSpi: '0x2',
+    proposals: [],
+  });
+
+  assert.ok(scorecard.findings.some((finding) => finding.id === 'F-TIME-01'));
+  assert.equal(scorecard.complianceNist, false);
 });
 
 test('known weak fully observed configuration lowers the security score', () => {

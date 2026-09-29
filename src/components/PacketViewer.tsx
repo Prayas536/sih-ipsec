@@ -197,7 +197,7 @@ export const PacketViewer: React.FC<PacketViewerProps> = ({ packets }) => {
               <div className="text-[11px] text-slate-500 mb-1.5 font-medium">Hex Dump Preview</div>
               <div className="p-2.5 bg-slate-900 rounded-lg font-mono text-[11px] text-emerald-400 break-all leading-relaxed border border-slate-700">
                 {selectedPacket.rawPreview ||
-                  '8f 3c 1a 9e 20 bb 41 d7 44 a1 09 8e ef 67 12 bc 01 10 02 00 00 00 00 00 00 00 00 7c 00 00 00 30'}
+                  'Raw bytes are unavailable for this packet.'}
               </div>
               {selectedPacket.debug && (
                 <details className="mt-2">

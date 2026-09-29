@@ -74,6 +74,7 @@ export const MetricCards: React.FC<MetricCardsProps> = ({
                 Evidence: {scorecard.evidenceCoveragePercent}% ({scorecard.assessmentStatus.toLowerCase()})
               </span>
               <span
+                title="Project-defined checks only; this is not full standards certification."
                 className={`px-1.5 py-0.2 rounded font-mono ${
                   scorecard.complianceNist === true
                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
@@ -82,9 +83,10 @@ export const MetricCards: React.FC<MetricCardsProps> = ({
                     : 'bg-slate-50 text-slate-600 border border-slate-200'
                 }`}
               >
-                {scorecard.complianceNist === null ? 'NIST: Not verified' : scorecard.complianceNist ? 'NIST SP 800-77: Pass' : 'NIST: Non-Compliant'}
+                {scorecard.complianceNist === null ? 'NIST checks: Not assessed' : scorecard.complianceNist ? 'NIST checks: Passed' : 'NIST checks: Issues found'}
               </span>
               <span
+                title="Project-defined checks only; this is not full standards certification."
                 className={`px-1.5 py-0.2 rounded font-mono ${
                   scorecard.complianceRfc8221 === true
                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
@@ -93,7 +95,7 @@ export const MetricCards: React.FC<MetricCardsProps> = ({
                     : 'bg-slate-50 text-slate-600 border border-slate-200'
                 }`}
               >
-                {scorecard.complianceRfc8221 === null ? 'RFC 8221: Not verified' : scorecard.complianceRfc8221 ? 'RFC 8221: Pass' : 'RFC 8221: Deprecated'}
+                {scorecard.complianceRfc8221 === null ? 'RFC 8221 checks: Not assessed' : scorecard.complianceRfc8221 ? 'RFC 8221 checks: Passed' : 'RFC 8221 checks: Issues found'}
               </span>
             </div>
           </div>

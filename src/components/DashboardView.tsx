@@ -156,12 +156,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         <div className="col-span-2 md:col-span-1 bg-white border border-slate-200 rounded-lg p-3.5">
-          <span className="text-xs font-medium text-slate-500 block">Engine Status</span>
+          <span className="text-xs font-medium text-slate-500 block">Dashboard Status</span>
           <div className="flex items-center gap-1.5 mt-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-            <span className="text-sm font-semibold text-slate-800">Operational</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-slate-400" />
+            <span className="text-sm font-semibold text-slate-800">Ready</span>
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">API & Scapy ready</span>
+          <span className="text-[11px] text-slate-400 mt-1 block">Service health is not probed here</span>
         </div>
       </div>
 
@@ -290,7 +290,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     >
                       <td className="text-slate-500 font-mono text-[11px] whitespace-nowrap">{act.time}</td>
                       <td className="font-medium text-slate-900 whitespace-nowrap">{act.activity}</td>
-                      <td className="text-slate-600 max-w-[140px] truncate" title={act.source}>
+                      <td className="text-slate-600 max-w-35 truncate" title={act.source}>
                         {act.source}
                       </td>
                       <td>{getStatusBadge(act.status)}</td>

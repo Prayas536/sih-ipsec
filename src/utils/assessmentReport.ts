@@ -69,7 +69,7 @@ const mlClassName = (label: string): string => ({
 function buildMlPredictionSection(scenario: VpnCaptureScenario): ReportSection | null {
   if (!scenario.mlPredictions) return null;
   return {
-    title: 'ML cryptographic predictions',
+    title: 'Cryptographic model predictions',
     lines: [
       'These values are model predictions from packet/flow features. They are not decoded protocol fields and must be confirmed with visible negotiation evidence, gateway telemetry, or configuration.',
       'Use this section to guide investigation; do not treat it as compliance proof.',
@@ -112,7 +112,7 @@ export function buildReportSections(
     'Application identity and encrypted contents cannot be confirmed from packet metadata.',
   ];
   const confidenceLines = [
-    `Crypto ML confidence score: ${snapshot.aiConfidenceScore === null ? 'Unavailable' : `${snapshot.aiConfidenceScore}%`}.`,
+    `AI confidence score: ${snapshot.aiConfidenceScore === null ? 'Unavailable' : `${snapshot.aiConfidenceScore}%`} (mean cryptographic-model predicted-class probability).`,
     snapshot.aiConfidenceModels
       ? `Mean predicted-class probability across ${snapshot.aiConfidenceModels} available cryptographic inference models. This is not AI narrative confidence, measured accuracy, or probability that the deployment is secure.`
       : 'The trained cryptographic inference service did not return model predictions for this capture.',
@@ -142,7 +142,9 @@ export function buildReportSections(
     ],
   };
   const observedCryptoSection: ReportSection = {
-    title: 'Packet-observed cryptographic evidence',
+    title: kind === 'EXECUTIVE'
+      ? 'Observed cryptographic posture'
+      : 'Cryptographic parameters — packet-observed evidence',
     table: { headers: ['Field', 'Packet-observed value', 'Evidence status'], rows: [
       ['IKE version', display(scenario.sa.ikeVersion), scenario.sa.ikeVersion === 'Not observed in capture' ? 'Not observed' : 'Observed'],
       ['Operating mode', display(scenario.sa.operationalMode), scenario.sa.operationalMode === 'Not determined from capture' ? 'Not determined' : 'Observed'],

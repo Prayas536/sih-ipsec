@@ -18,7 +18,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { GatewayAiReport, GatewaySecurityReport, fetchGatewayReport, generateGatewayAiReport } from '../utils/gatewayClient';
-import { downloadGatewayReportPdf } from '../utils/gatewayPdf';
+import { downloadGatewayReportPdf, GatewayReportMode } from '../utils/gatewayPdf';
 
 interface GatewayReportModalProps {
   isOpen: boolean;
@@ -40,6 +40,7 @@ export const GatewayReportModal: React.FC<GatewayReportModalProps> = ({
   const [aiReport, setAiReport] = useState<GatewayAiReport | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [reportMode, setReportMode] = useState<GatewayReportMode>('EXECUTIVE');
 
   useEffect(() => {
     if (isOpen && gatewayId) {
@@ -49,6 +50,7 @@ export const GatewayReportModal: React.FC<GatewayReportModalProps> = ({
       setError(null);
       setAiReport(null);
       setAiError(null);
+      setReportMode('EXECUTIVE');
     }
   }, [isOpen, gatewayId]);
 
@@ -70,6 +72,43 @@ export const GatewayReportModal: React.FC<GatewayReportModalProps> = ({
   const generateMarkdown = (): string => {
     if (!report) return '';
     const { gateway, telemetry, securityAssessment, reportGeneratedAt } = report;
+
+    if (reportMode === 'EXECUTIVE') {
+      const priorityFindings = securityAssessment.findings
+        .filter((finding) => finding.severity !== 'Pass')
+        .sort((left, right) => {
+          const rank: Record<string, number> = { Critical: 0, High: 1, Medium: 2, Low: 3 };
+          return (rank[left.severity] ?? 4) - (rank[right.severity] ?? 4);
+        });
+      const actionRows = securityAssessment.configurationRecommendations
+        .map((item) => `| ${item.setting} | ${item.current} | ${item.recommended} |`)
+        .join('\n');
+      const findingsText = priorityFindings.length
+        ? priorityFindings.map((finding) => `- **${finding.severity}: ${finding.category}**: ${finding.value || 'Not determinable'}. ${finding.detail}`).join('\n')
+        : '- No deterministic configuration risks were scored; evidence gaps still need review.';
+
+      return `# Executive Gateway Security Assessment: ${gateway.display_name}
+**Gateway:** ${gateway.gateway_id} (${gateway.gateway_type})
+**Snapshot:** ${reportGeneratedAt} UTC
+**Status:** ${gateway.status} | **Adapter:** ${telemetry.adapter}
+
+## Executive Summary
+${aiReport?.narrative.executive_summary || `Verified score: ${securityAssessment.score.value}/100 (${securityAssessment.score.rating}). Evidence coverage: ${securityAssessment.score.evidenceCoveragePercent}% (${securityAssessment.score.status}). Findings: ${securityAssessment.findings.filter((finding) => finding.severity === 'Critical').length} Critical, ${securityAssessment.findings.filter((finding) => finding.severity === 'High').length} High.`}
+
+## Priority Findings
+${findingsText}
+
+## Recommended Actions
+| Setting | Observed | Recommended |
+| --- | --- | --- |
+${actionRows || '| None | Not determinable | No action generated |'}
+
+## Evidence Limits
+${securityAssessment.limitations.map((limitation) => `- ${limitation}`).join('\n') || '- No additional limitations reported.'}
+
+${aiReport ? `AI model: ${aiReport.model}. AI text explains supplied evidence only and does not change deterministic findings, scores, or recommendations.` : 'AI narrative not generated; this report uses deterministic findings and recommendations.'}
+`;
+    }
 
     const findingsMd = securityAssessment.findings
       .map(
@@ -184,7 +223,7 @@ ${limitationsMd}
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `gateway_security_report_${gatewayId || 'gw'}.md`;
+    a.download = `gateway_security_report_${reportMode.toLowerCase()}_${gatewayId || 'gw'}.md`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -216,7 +255,7 @@ ${limitationsMd}
 
   const handleDownloadPdf = () => {
     if (!report) return;
-    downloadGatewayReportPdf(report, aiReport);
+    downloadGatewayReportPdf(report, aiReport, reportMode);
   };
 
   return (
@@ -250,6 +289,28 @@ ${limitationsMd}
 
         {/* Content Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {report && !loading && (
+            <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-3">
+              <div>
+                <h3 className="text-xs font-semibold text-slate-800">Report View</h3>
+                <p className="text-[11px] text-slate-500">Choose the level of detail for this gateway snapshot.</p>
+              </div>
+              <div className="inline-flex rounded-md border border-slate-300 bg-slate-100 p-0.5" role="tablist" aria-label="Gateway report view">
+                {(['EXECUTIVE', 'TECHNICAL'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    role="tab"
+                    aria-selected={reportMode === mode}
+                    onClick={() => setReportMode(mode)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${reportMode === mode ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                  >
+                    {mode === 'EXECUTIVE' ? 'Executive' : 'Technical'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {loading && (
             <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-500">
               <RefreshCw className="w-6 h-6 animate-spin text-blue-600" />
@@ -336,11 +397,67 @@ ${limitationsMd}
                 <div className="p-4 rounded-lg bg-cyan-50 border border-cyan-200 space-y-2">
                   <div className="text-xs font-semibold uppercase text-cyan-900">AI-assisted narrative · {aiReport.model}</div>
                   <p className="text-sm text-slate-800">{aiReport.narrative.executive_summary}</p>
-                  <p className="text-xs text-slate-600">{aiReport.narrative.technical_interpretation}</p>
+                  {reportMode === 'TECHNICAL' && <p className="text-xs text-slate-600">{aiReport.narrative.technical_interpretation}</p>}
                   <p className="text-[11px] text-cyan-900">AI prose does not change deterministic findings, scores, or recommendations.</p>
                 </div>
               )}
 
+              {reportMode === 'EXECUTIVE' ? (
+                <div className="space-y-4">
+                  <section className="p-4 rounded-lg border border-slate-200 bg-slate-50 space-y-2">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-700">Executive Assessment</h3>
+                    <p className="text-sm leading-relaxed text-slate-800">
+                      {aiReport?.narrative.executive_summary ||
+                        `${report.gateway.status} gateway snapshot: verified score ${report.securityAssessment.score.value}/100 (${report.securityAssessment.score.rating}) with ${report.securityAssessment.score.evidenceCoveragePercent}% evidence coverage. ${report.securityAssessment.findings.filter((finding) => finding.severity === 'Critical').length} Critical and ${report.securityAssessment.findings.filter((finding) => finding.severity === 'High').length} High findings were observed.`}
+                    </p>
+                    <p className="text-[11px] text-slate-600">This is a point-in-time assessment. Unknown controls are evidence gaps, not confirmed failures or passes.</p>
+                  </section>
+
+                  <section className="space-y-2">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-700">Priority Findings</h3>
+                    {report.securityAssessment.findings.filter((finding) => finding.severity !== 'Pass').length ? (
+                      <ol className="space-y-2">
+                        {report.securityAssessment.findings
+                          .filter((finding) => finding.severity !== 'Pass')
+                          .slice(0, 5)
+                          .map((finding, index) => (
+                            <li key={finding.category + index} className="p-3 rounded-md border border-slate-200 bg-white flex gap-3">
+                              <span className={`shrink-0 px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${finding.severity === 'Critical' ? 'bg-red-700 text-white' : finding.severity === 'High' ? 'bg-amber-700 text-white' : 'bg-slate-200 text-slate-700'}`}>{finding.severity}</span>
+                              <div>
+                                <p className="text-xs font-semibold text-slate-900">{finding.category}: {finding.value || 'Not determinable'}</p>
+                                <p className="text-xs text-slate-600 mt-1">{finding.detail}</p>
+                              </div>
+                            </li>
+                          ))}
+                      </ol>
+                    ) : (
+                      <p className="p-3 rounded-md border border-slate-200 bg-white text-xs text-slate-600">No deterministic findings were scored. Review coverage and limitations before concluding the gateway is secure.</p>
+                    )}
+                  </section>
+
+                  <section className="space-y-2">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-700">Recommended Actions</h3>
+                    <div className="overflow-x-auto border border-slate-200 rounded-md">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-slate-50 text-slate-600"><tr><th className="p-2">Setting</th><th className="p-2">Observed</th><th className="p-2">Recommended</th></tr></thead>
+                        <tbody>
+                          {report.securityAssessment.configurationRecommendations.map((item) => (
+                            <tr key={item.id} className="border-t border-slate-100 align-top"><td className="p-2 font-medium text-slate-800">{item.setting}</td><td className="p-2 font-mono text-slate-700">{item.current}</td><td className="p-2 text-slate-800">{item.recommended}</td></tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+
+                  <section className="p-3 rounded-md border border-amber-200 bg-amber-50">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-amber-900">Key Evidence Gaps</h3>
+                    <ul className="mt-2 space-y-1 text-xs text-amber-900">
+                      {report.securityAssessment.limitations.slice(0, 5).map((limitation, index) => <li key={index}>• {limitation}</li>)}
+                    </ul>
+                  </section>
+                </div>
+              ) : (
+              <>
               {/* Security Findings Section */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -577,6 +694,8 @@ ${limitationsMd}
                   ))}
                 </ul>
               </div>
+              </>
+              )}
             </>
           )}
         </div>

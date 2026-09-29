@@ -188,7 +188,7 @@ Capture both the IKE negotiation handshake and encrypted ESP payloads on your VP
 
 ```bash
 sudo tcpdump -i any -nn -s 0 -w ipsec_capture.pcap \
-  "udp port 500 or udp port 4500 or proto 50"
+    "udp port 500 or udp port 4500 or ip proto 50 or ip proto 51 or ip6 protochain 50 or ip6 protochain 51"
 ```
 
 1. Run the command above on your client or server.
@@ -200,7 +200,7 @@ sudo tcpdump -i any -nn -s 0 -w ipsec_capture.pcap \
 1. Open Wireshark and choose your active network adapter.
 2. In the capture filter box, enter:
    ```
-   udp port 500 or udp port 4500 or esp
+    udp port 500 or udp port 4500 or esp or ah
    ```
 3. Start the capture, start your VPN, and generate traffic.
 4. Go to **File → Save As... → Wireshark/tcpdump pcap (`.pcap`)**.

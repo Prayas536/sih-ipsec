@@ -4,6 +4,7 @@ import type { GatewayAiReport, GatewaySecurityReport } from './gatewayClient';
 
 type RGB = [number, number, number];
 type GatewayRecord = Record<string, unknown>;
+export type GatewayReportMode = 'EXECUTIVE' | 'TECHNICAL';
 
 const palette: Record<string, RGB> = {
   ink: [27, 47, 59],
@@ -37,6 +38,7 @@ const displayValue = (value: unknown, fallback = 'Not reported'): string => {
 export function downloadGatewayReportPdf(
   report: GatewaySecurityReport,
   aiReport: GatewayAiReport | null,
+  mode: GatewayReportMode,
 ): void {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -274,13 +276,43 @@ export function downloadGatewayReportPdf(
     y += 7;
   });
 
-  doc.addPage();
-  y = 21;
-  section('2. Prioritized Security Findings');
-  if (aiReport?.narrative.technical_interpretation) {
-    callout('AI-assisted technical interpretation', aiReport.narrative.technical_interpretation, palette.blue);
-  }
-  autoTable(doc, {
+  if (mode === 'EXECUTIVE') {
+    doc.addPage();
+    y = 21;
+    section('Priority Findings and Decisions');
+    const priorityFindings = findings
+      .filter((finding) => finding.severity !== 'Pass')
+      .sort((left, right) => {
+        const rank: Record<string, number> = { Critical: 0, High: 1, Medium: 2, Low: 3 };
+        return (rank[left.severity] ?? 4) - (rank[right.severity] ?? 4);
+      });
+    table(
+      ['Severity', 'Finding', 'Observed', 'Recommended action'],
+      priorityFindings.map((finding) => [finding.severity, finding.category, finding.value, finding.detail]),
+      [22, 37, 36, contentWidth - 95],
+    );
+    section('Executive Action Plan');
+    table(
+      ['Priority', 'Setting', 'Current state', 'Recommended action'],
+      report.securityAssessment.configurationRecommendations.map((item, index) => [
+        String(index + 1), item.setting, item.current, item.recommended,
+      ]),
+      [14, 39, 55, contentWidth - 108],
+    );
+    section('Decision Caveats');
+    paragraph(`Evidence is ${score.evidenceCoveragePercent}% complete (${score.status}). Unknown controls are not passes. This point-in-time report is not a penetration test, compliance attestation, or certification.`);
+    report.securityAssessment.limitations.slice(0, 6).forEach((limitation) => paragraph(`- ${limitation}`, 8));
+    if (aiReport?.narrative.executive_summary) {
+      callout('AI-assisted context', aiReport.narrative.executive_summary, palette.blue);
+    }
+  } else {
+    doc.addPage();
+    y = 21;
+    section('2. Prioritized Security Findings');
+    if (aiReport?.narrative.technical_interpretation) {
+      callout('AI-assisted technical interpretation', aiReport.narrative.technical_interpretation, palette.blue);
+    }
+    autoTable(doc, {
     startY: y,
     head: [['Severity', 'Finding and observed value', 'Verified assessment', 'Why it matters (AI-assisted)']],
     body: findingRows.length ? findingRows : [['None', 'No conclusive findings available', 'Review evidence and limitations.', '']],
@@ -304,11 +336,11 @@ export function downloadGatewayReportPdf(
       3: { cellWidth: contentWidth - 123 },
     },
     rowPageBreak: 'avoid',
-  });
-  y = ((doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? y + 12) + 8;
+    });
+    y = ((doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? y + 12) + 8;
 
-  section('3. Remediation Plan');
-  table(
+    section('3. Remediation Plan');
+    table(
     ['Setting', 'Observed', 'Recommended', 'Deterministic basis', 'AI explanation'],
     report.securityAssessment.configurationRecommendations.map((item) => [
       item.setting,
@@ -318,12 +350,12 @@ export function downloadGatewayReportPdf(
       aiRecommendationNotes.get(item.id) ?? (aiReport ? 'No additional explanation returned.' : 'AI note not generated; deterministic basis follows.'),
     ]),
     [28, 27, 34, 48, contentWidth - 137],
-  );
+    );
 
-  doc.addPage();
-  y = 21;
-  section('4. Observed IKE Security Associations');
-  table(
+    doc.addPage();
+    y = 21;
+    section('4. Observed IKE Security Associations');
+    table(
     ['SA', 'Version', 'Encryption', 'Integrity', 'PRF', 'DH group'],
     report.telemetry.ikeRecords.map((ike, index) => [
       displayValue(ike.name, `IKE SA ${index + 1}`),
@@ -334,10 +366,10 @@ export function downloadGatewayReportPdf(
       displayValue(ike.dh),
     ]),
     [32, 21, 35, 34, 31, contentWidth - 153],
-  );
+    );
 
-  section('5. Observed Child SA / ESP Evidence');
-  table(
+    section('5. Observed Child SA / ESP Evidence');
+    table(
     ['Child SA / mode', 'SPI in / out', 'Encryption / integrity', 'DH / PFS', 'Replay / ESN', 'Timers / traffic'],
     report.telemetry.childRecords.map((child: GatewayRecord, index) => [
       `${displayValue(child.name, `Child SA ${index + 1}`)}\n${displayValue(child.protocol, 'ESP')} / ${displayValue(child.mode)}`,
@@ -348,17 +380,18 @@ export function downloadGatewayReportPdf(
       `Rekey / expiry: ${displayValue(child.rekey_time)} / ${displayValue(child.life_time)} s\nIn: ${displayValue(child.packets_in, '0')} pkts, ${displayValue(child.bytes_in, '0')} B\nOut: ${displayValue(child.packets_out, '0')} pkts, ${displayValue(child.bytes_out, '0')} B`,
     ]),
     [32, 25, 35, 23, 34, contentWidth - 149],
-  );
+    );
 
-  section('6. Scope, Methodology, and Limitations');
-  paragraph(`Scope: ${report.gateway.display_name} (${report.gateway.gateway_id}), using the latest gateway telemetry snapshot available at ${report.reportGeneratedAt} UTC. The snapshot reports ${report.gateway.active_ike_sa_count} active IKE SA(s) and ${report.gateway.active_child_sa_count} active Child SA(s).`);
-  paragraph(`Method: ${score.method} Deterministic checks score observed controls; missing or unmatched evidence remains not determinable and is not treated as a pass. AI-generated text explains supplied data only and does not alter findings, scores, or recommendations.`);
-  report.securityAssessment.limitations.forEach((limitation) => paragraph(`- ${limitation}`, 8));
-  paragraph('This is a point-in-time technical assessment, not a penetration test, compliance attestation, or certification.', 8);
+    section('6. Scope, Methodology, and Limitations');
+    paragraph(`Scope: ${report.gateway.display_name} (${report.gateway.gateway_id}), using the latest gateway telemetry snapshot available at ${report.reportGeneratedAt} UTC. The snapshot reports ${report.gateway.active_ike_sa_count} active IKE SA(s) and ${report.gateway.active_child_sa_count} active Child SA(s).`);
+    paragraph(`Method: ${score.method} Deterministic checks score observed controls; missing or unmatched evidence remains not determinable and is not treated as a pass. AI-generated text explains supplied data only and does not alter findings, scores, or recommendations.`);
+    report.securityAssessment.limitations.forEach((limitation) => paragraph(`- ${limitation}`, 8));
+    paragraph('This is a point-in-time technical assessment, not a penetration test, compliance attestation, or certification.', 8);
 
-  section('7. Reference Guidance');
-  paragraph('NIST SP 800-77 Rev. 1, Guide to IPsec VPNs (June 2020). https://doi.org/10.6028/NIST.SP.800-77r1', 7.5);
-  paragraph('NIST SP 800-115, Technical Guide to Information Security Testing and Assessment (September 2008). https://doi.org/10.6028/NIST.SP.800-115', 7.5);
+    section('7. Reference Guidance');
+    paragraph('NIST SP 800-77 Rev. 1, Guide to IPsec VPNs (June 2020). https://doi.org/10.6028/NIST.SP.800-77r1', 7.5);
+    paragraph('NIST SP 800-115, Technical Guide to Information Security Testing and Assessment (September 2008). https://doi.org/10.6028/NIST.SP.800-115', 7.5);
+  }
 
   const pageCount = doc.getNumberOfPages();
   for (let page = 1; page <= pageCount; page += 1) {
@@ -384,5 +417,5 @@ export function downloadGatewayReportPdf(
   }
 
   const safeGatewayId = report.gateway.gateway_id.replace(/[^a-zA-Z0-9_-]/g, '_') || 'gateway';
-  doc.save(`gateway_security_assessment_${safeGatewayId}.pdf`);
+  doc.save(`gateway_security_assessment_${mode.toLowerCase()}_${safeGatewayId}.pdf`);
 }

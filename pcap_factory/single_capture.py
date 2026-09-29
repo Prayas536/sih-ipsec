@@ -172,7 +172,7 @@ def main():
         f"-i enp0s8 "
         f"-U "
         f"-w {remote_pcap} "
-        f"'udp port 500 or udp port 4500 or ip proto 50'"
+        f"'udp port 500 or udp port 4500 or ip proto 50 or ip proto 51 or ip6 protochain 50 or ip6 protochain 51'"
     )
 
     stdin, stdout, stderr = client_a.exec_command(
@@ -341,7 +341,10 @@ def main():
             "filter": (
                 "udp port 500 or "
                 "udp port 4500 or "
-                "ip proto 50"
+                "ip proto 50 or "
+                "ip proto 51 or "
+                "ip6 protochain 50 or "
+                "ip6 protochain 51"
             )
         },
 
