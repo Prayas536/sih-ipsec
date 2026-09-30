@@ -28,6 +28,16 @@ This framework provides an end-to-end, multi-tier automated solution:
 
 ---
 
+## 📚 Technical Documentation & Deep Dives
+
+For in-depth technical details, please refer to the specialized documentation:
+- 📖 **[TECHNICAL_DOCUMENTATION.md](TECHNICAL_DOCUMENTATION.md)**: **Master Technical Specification** — In-depth packet lifecycle, mathematical audit formulas (Sweet32, Logjam, PFS), ML pipeline, and runbooks.
+- 🏗️ **[ARCHITECTURE.md](ARCHITECTURE.md)**: Component boundaries, evidence contracts, and multi-tier design.
+- 🔌 **[API.md](API.md)**: REST API endpoint schemas and payload contracts for Scapy and the Central API.
+- 🧠 **[ML_MODEL.md](ML_MODEL.md)**: Random Forest model architectures, 18-feature input vector, and confidence thresholds.
+- 🛡️ **[SECURITY_MODEL.md](SECURITY_MODEL.md)**: Zero-trust evidence hierarchy (`PCAP_OBSERVED > TELEMETRY > ML > UNKNOWN`).
+- 📊 **[dataset/README.md](dataset/README.md)**: Labeled cryptographic & workload datasets, column definitions, and model training guide.
+
 ## 🏗️ System Architecture
 
 The solution is architected as a set of cooperating, decoupled local services ensuring high performance, zero data leakage, and offline capability:
