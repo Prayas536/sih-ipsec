@@ -1,0 +1,1248 @@
+[
+  {
+    "file": "AGENT.md",
+    "lines": 44,
+    "symbols": [],
+    "sha256": "60d4bf18cb32024aa5b1d83e1c68b13be0aaaf8574804be37185977db1a1508e"
+  },
+  {
+    "file": "API.md",
+    "lines": 50,
+    "symbols": [],
+    "sha256": "1de0f7004a2416e816f8f0e6d80a1061d808f7427ed99fa074a661c30a051e7e"
+  },
+  {
+    "file": "ARCHITECTURE.md",
+    "lines": 62,
+    "symbols": [],
+    "sha256": "241929f0700259446857a5dceed505e5d6228708d77023f45965c7490e599468"
+  },
+  {
+    "file": "ARCHITECTURE_AUDIT.md",
+    "lines": 135,
+    "symbols": [],
+    "sha256": "7e139fccef237d0f21f45bfc3a0450f274bab44a49df0806676ea055a1a294d3"
+  },
+  {
+    "file": "DATASET.md",
+    "lines": 17,
+    "symbols": [],
+    "sha256": "0e0266e395588bddde6891fe267e67242307aa765c91b4afb7aa7a8b89e29f68"
+  },
+  {
+    "file": "DATA_PRIVACY.md",
+    "lines": 19,
+    "symbols": [],
+    "sha256": "382d8ec3f56bec561d3405506f6f1d534634ddc31c50428c7e9c772113a4304c"
+  },
+  {
+    "file": "docker-compose.yml",
+    "lines": 35,
+    "symbols": [],
+    "sha256": "af192b707c3917a44d3404ac089089e3ad549d34162ddad1166285f356cd01ec"
+  },
+  {
+    "file": "GATEWAY_TELEMETRY.md",
+    "lines": 17,
+    "symbols": [],
+    "sha256": "0e8c0e3fff2e92576932ef6cda1b8f9724a10fa9cad57b08b6c02e7130d133b6"
+  },
+  {
+    "file": "LIMITATIONS.md",
+    "lines": 13,
+    "symbols": [],
+    "sha256": "ed2fb5a603fd7dfe41d17a1c2cb5d51d2ad5707d8b19936a71a41049c15c887b"
+  },
+  {
+    "file": "metadata.json",
+    "lines": 6,
+    "symbols": [],
+    "sha256": "2fc1603b22b4d1be4d6824350ac514c1f0e6a915b7180fa896f3150e891bbab8"
+  },
+  {
+    "file": "ML_MODEL.md",
+    "lines": 66,
+    "symbols": [],
+    "sha256": "cb6fd33e6c0e5ed3c4e06383d7d307730181ed526950d8ec59898bec962b417f"
+  },
+  {
+    "file": "package-lock.json",
+    "lines": 4217,
+    "symbols": [],
+    "sha256": "8ef964e57f09d3020d3f799917ea4e199dc2a35aa093e6046d37516a2954268b"
+  },
+  {
+    "file": "package.json",
+    "lines": 39,
+    "symbols": [],
+    "sha256": "cde044732795a801c9aed5c0431d355f63f665ffb103892d6fa2f54b1496e12f"
+  },
+  {
+    "file": "prompt.md",
+    "lines": 407,
+    "symbols": [
+      "handleFileUpload",
+      "handleDrop",
+      "processFile",
+      "SCAPY_ANALYZER_URL",
+      "parseWithScapy",
+      "Handler",
+      "analyze",
+      "newScenario"
+    ],
+    "sha256": "456b130a70e36d5aea890e46dd7065b1d47a92e2007cef08b656f458c2c84775"
+  },
+  {
+    "file": "README.md",
+    "lines": 289,
+    "symbols": [],
+    "sha256": "068133ee72d1a88b165e416108aa84eb4006754ac160d265f955a49a0c4313d8"
+  },
+  {
+    "file": "requirements.txt",
+    "lines": 3,
+    "symbols": [],
+    "sha256": "b3f69a818ca070efc36738b70b34533a9640f7f50bedfba49f46768759d77a97"
+  },
+  {
+    "file": "SECURITY_MODEL.md",
+    "lines": 16,
+    "symbols": [],
+    "sha256": "6c10cdc62d4b31577c92a911920d732ba43e4c45a28b4a50fd76b9abe97cfe5f"
+  },
+  {
+    "file": "tsconfig.json",
+    "lines": 27,
+    "symbols": [],
+    "sha256": "58d501268d21ea004784e658f61fd55061028696fad319390fd1421240365df6"
+  },
+  {
+    "file": "vite.config.ts",
+    "lines": 22,
+    "symbols": [],
+    "sha256": "bddf3cd3056470ce1d7dced22ab49d590f47845da102aa9a3986d7d88041d5dc"
+  },
+  {
+    "file": "working.md",
+    "lines": 575,
+    "symbols": [],
+    "sha256": "aed73f80fca056cc83fbde26c777a5fedbf720c066e3b2a034e1a81ab21766c6"
+  },
+  {
+    "file": "backend\\requirements.txt",
+    "lines": 6,
+    "symbols": [],
+    "sha256": "503a19d2ccea4851c72428cea14ce02e1e74575ef8475e88e486717b365241ca"
+  },
+  {
+    "file": "demo\\README.md",
+    "lines": 17,
+    "symbols": [],
+    "sha256": "092fcffb0d3413d34f0438d83f6cfb255c76fd199407cb3b547a328991de3c19"
+  },
+  {
+    "file": "demo\\sample-executive-report.md",
+    "lines": 32,
+    "symbols": [],
+    "sha256": "7e857258a940e33343c5f3959f63b91ff627771886ae40c2b706c8167c4c8127"
+  },
+  {
+    "file": "demo\\sample-technical-report.md",
+    "lines": 72,
+    "symbols": [],
+    "sha256": "aa9b3c14cbbb6b3236642d2e627b15b6d42f1de08e2ac4f14c927aa577ea55c0"
+  },
+  {
+    "file": "feature_extractor\\batch_extract.py",
+    "lines": 85,
+    "symbols": [
+      "main"
+    ],
+    "sha256": "ddf31ebbacbceec8ae7cef1a1ad67ebcda6a3daa12f9df66cc48f6d6c488887f"
+  },
+  {
+    "file": "feature_extractor\\build_dataset.py",
+    "lines": 462,
+    "symbols": [
+      "parse_labels",
+      "load_feature_file",
+      "main"
+    ],
+    "sha256": "cc305f6db76678454bf6426720a88addbe2fc5955a1022ed6cac39037bf66865"
+  },
+  {
+    "file": "feature_extractor\\extractor.py",
+    "lines": 812,
+    "symbols": [
+      "safe_len",
+      "get_packet_timestamp",
+      "get_class_name",
+      "get_ike_layer",
+      "is_ike_port_packet",
+      "is_esp_packet",
+      "classify_ike_packet",
+      "classify_ike_by_ports",
+      "extract_features",
+      "main"
+    ],
+    "sha256": "c9f404561a04a9b2bb1989f701ed298fea479191e1dbba80904191d59c108c6e"
+  },
+  {
+    "file": "feature_extractor\\inspect_dataset.py",
+    "lines": 326,
+    "symbols": [
+      "show_distribution",
+      "main"
+    ],
+    "sha256": "e4bde0900f1a37df27c533488256de522db6066ba66291221f2137fff77a4a96"
+  },
+  {
+    "file": "feature_extractor\\make_split.py",
+    "lines": 286,
+    "symbols": [
+      "main"
+    ],
+    "sha256": "fca1e6417042aa72809fae2321603ec850c6e17a4dcec1b4d6499b0fe61a5541"
+  },
+  {
+    "file": "feature_extractor\\matrix_audit.py",
+    "lines": 194,
+    "symbols": [
+      "audit_pair"
+    ],
+    "sha256": "e917f2f649c7c39f57c9e077d975a77f4b4a74d636f32585274d5cc431ac1131"
+  },
+  {
+    "file": "feature_extractor\\prepare_dataset.py",
+    "lines": 435,
+    "symbols": [
+      "main"
+    ],
+    "sha256": "8a9568d150a2e9bf018d5be8dd12c5980cfe46ebc67f33b7e1e1a12575089adb"
+  },
+  {
+    "file": "feature_extractor\\requirements.txt",
+    "lines": 2,
+    "symbols": [],
+    "sha256": "ec19da33522dab0b4cfccd70093e004c5406ddc60e104482ba1b0323f718ff73"
+  },
+  {
+    "file": "pcap_factory\\experiments.json",
+    "lines": 284,
+    "symbols": [],
+    "sha256": "c0607ac74813f78993e9d9719c5a47d8ce6bee52063e1f93810e17eb234125f8"
+  },
+  {
+    "file": "pcap_factory\\factory.py",
+    "lines": 3535,
+    "symbols": [
+      "SSHHost",
+      "shell_quote",
+      "run",
+      "sudo",
+      "build_ipsec_conf",
+      "write_remote_file",
+      "configure_host",
+      "verify_loaded_config",
+      "stop_vpn",
+      "start_vpn",
+      "get_status",
+      "wait_for_established",
+      "start_capture",
+      "stop_capture",
+      "verify_pcap",
+      "download_file",
+      "remove_remote_pcap",
+      "generate_icmp",
+      "start_tcp_server",
+      "stop_tcp_server",
+      "generate_tcp",
+      "start_udp_server",
+      "stop_udp_server",
+      "generate_udp",
+      "generate_traffic",
+      "clean_proposal",
+      "parse_ike_proposal",
+      "parse_esp_proposal",
+      "parse_ike_spis",
+      "parse_esp_spis",
+      "parse_prf",
+      "parse_dh_from_ike",
+      "parse_pfs_group",
+      "normalize_pfs_group",
+      "parse_child_sa_state",
+      "normalize_requested_ike",
+      "normalize_requested_esp",
+      "normalize_ike_negotiated",
+      "normalize_esp_negotiated",
+      "validate_ike",
+      "validate_esp",
+      "validate_negotiation",
+      "perform_child_rekey",
+      "create_metadata",
+      "save_metadata",
+      "save_failure_metadata",
+      "run_experiment",
+      "safe_stop_everything",
+      "handle_interrupt",
+      "main"
+    ],
+    "sha256": "32593d1889fcab6d275c459fa3a2cc09de5c97ed366de1c667ae451354311776"
+  },
+  {
+    "file": "pcap_factory\\requirements.txt.txt",
+    "lines": 1,
+    "symbols": [],
+    "sha256": "22499e2e91008ec5ab26671e639e32e33bf65ecb2e006cddaef0aba1b0d94028"
+  },
+  {
+    "file": "pcap_factory\\single_capture.py",
+    "lines": 383,
+    "symbols": [
+      "connect",
+      "run_command",
+      "get_status",
+      "wait_for_established",
+      "main"
+    ],
+    "sha256": "146a98741365ac1c74c1fa217a1d3ed17ab47c686f5a7defc07766d6eb8f1d5e"
+  },
+  {
+    "file": "server\\agent_config.example.json",
+    "lines": 9,
+    "symbols": [],
+    "sha256": "d003b64e493d473a641e23bcc4153c672d6809462cbc2ce30e9ad0d9d63380f6"
+  },
+  {
+    "file": "server\\ai_reporting.py",
+    "lines": 465,
+    "symbols": [
+      "GroqReportError",
+      "load_project_env",
+      "build_gateway_ai_context",
+      "_bounded_scalar",
+      "build_pcap_ai_context",
+      "_validate_narrative",
+      "_validate_pcap_narrative",
+      "_request_groq_json",
+      "generate_groq_narrative",
+      "generate_groq_pcap_narrative"
+    ],
+    "sha256": "b56b28b22a1609311f0a62e09dfc13949dad5e48c0f9ff27cf70455be9c042e2"
+  },
+  {
+    "file": "server\\api_server.py",
+    "lines": 1363,
+    "symbols": [
+      "json_response",
+      "text_response",
+      "binary_response",
+      "_gateway_field_evidence",
+      "_valid_esp_spi",
+      "_gateway_score",
+      "_configuration_recommendations",
+      "_normalized_algorithm",
+      "_known_gateway_encryption",
+      "_gateway_encryption_prefers_aead",
+      "_weak_gateway_encryption",
+      "_known_gateway_integrity",
+      "_weak_gateway_integrity",
+      "_known_gateway_dh_group",
+      "_weak_gateway_dh_group",
+      "_build_child_sa_evidence",
+      "_extract_bearer_token",
+      "ApiHandler"
+    ],
+    "sha256": "126a74e81fb7455181b5fedbd3ab74ca79f3a59ae99d960225643b2303f88bd6"
+  },
+  {
+    "file": "server\\correlation.py",
+    "lines": 65,
+    "symbols": [
+      "_normalize_spi",
+      "correlate_spi"
+    ],
+    "sha256": "b1df220060580069bf425a925970ac5ba0ddbd813bd96b0d0dae72d4fd5c81f6"
+  },
+  {
+    "file": "server\\live_capture.py",
+    "lines": 109,
+    "symbols": [
+      "_pseudonymize",
+      "_protocol",
+      "packet_metadata",
+      "capture_live",
+      "capture_from_packets"
+    ],
+    "sha256": "ac89a4496b4affb9c5f36f6fd49aebc3a21a94e4ef18a707ea00c19f1b62e922"
+  },
+  {
+    "file": "server\\ml_pipeline.py",
+    "lines": 195,
+    "symbols": [
+      "_entropy",
+      "_percentile",
+      "extract_flow_features",
+      "_vector",
+      "train_models",
+      "load_manifest",
+      "main"
+    ],
+    "sha256": "96261ff4fd4bcddc0c2078b48ebbaf8be47dc8bfb883be25f9de8404863f88d4"
+  },
+  {
+    "file": "server\\repository.py",
+    "lines": 654,
+    "symbols": [
+      "_hash_token",
+      "_utc_now_str",
+      "_parse_db_time",
+      "compute_gateway_status",
+      "AnalysisRepository",
+      "_without_packet_payload"
+    ],
+    "sha256": "9d815d8041480c88e749c83a70afc4c8201c6fa3e5644814c87536664e5d3d0c"
+  },
+  {
+    "file": "server\\sanitizer.py",
+    "lines": 99,
+    "symbols": [
+      "_safe_scalar",
+      "sanitize_packet_metadata",
+      "sanitize_telemetry",
+      "sanitize_analysis_payload"
+    ],
+    "sha256": "6c4b5054cfc6d0fb38f235b75a14ce6fcd3440ca55580abeffbfcbd0cef6901c"
+  },
+  {
+    "file": "server\\scapy_analyzer.py",
+    "lines": 552,
+    "symbols": [
+      "entropy",
+      "hex_bytes",
+      "parse_traffic_selectors",
+      "parse_ike",
+      "parse_sa",
+      "transform_name",
+      "analyze",
+      "Handler"
+    ],
+    "sha256": "9635a0724cdb86446c846e5bd1933d4951334b6058481475f322bf0583602d11"
+  },
+  {
+    "file": "server\\telemetry.py",
+    "lines": 549,
+    "symbols": [
+      "TelemetryResult",
+      "GatewayAdapter",
+      "StrongSwanAdapter",
+      "ViciAdapter",
+      "_format_spi",
+      "_format_algo",
+      "_format_ts",
+      "_to_int_or_str",
+      "_to_esn_bool",
+      "_normalize_spi",
+      "parse_xfrm_state_records",
+      "collect_xfrm_state_metadata",
+      "merge_xfrm_state_metadata",
+      "_parse_swanctl_event_blocks",
+      "parse_swanctl_records",
+      "parse_vici_records",
+      "_extract_json_records"
+    ],
+    "sha256": "888a2e1e15701e51923b9fc791c1e121861baeef71d34387fbfee29e19c155c8"
+  },
+  {
+    "file": "server\\testbed_control.py",
+    "lines": 195,
+    "symbols": [
+      "validate_testbed_settings",
+      "_proposals",
+      "render_swanctl_config",
+      "build_manual_commands"
+    ],
+    "sha256": "eac32805b01ea31077f0704b739c46dd9b49436950a33a59d20f78ca17e567be"
+  },
+  {
+    "file": "server\\test_ai_reporting.py",
+    "lines": 182,
+    "symbols": [
+      "AiReportingTests"
+    ],
+    "sha256": "650d66c1825aee7f25b6e216e595589b2176ba990e44333cbc7db543cfb7a8c9"
+  },
+  {
+    "file": "server\\test_gateway_management.py",
+    "lines": 781,
+    "symbols": [
+      "GatewayManagementTests",
+      "GatewayApiHttpIntegrationTests"
+    ],
+    "sha256": "8338668ce9609c77d876db5477086fc8cd37f3dbcd0b5b705e249642a33c953b"
+  },
+  {
+    "file": "server\\test_ml_pipeline.py",
+    "lines": 37,
+    "symbols": [
+      "MlPipelineTests"
+    ],
+    "sha256": "9b78025757c1a9a783d1c4aa2a8c1db49f6c20ddddd1b90e633e8b242f8b4255"
+  },
+  {
+    "file": "server\\test_repository.py",
+    "lines": 43,
+    "symbols": [
+      "RepositoryTests"
+    ],
+    "sha256": "891c8a2f3de1e7e688243e3b92e0c38bb0773e9961dcca485d0c410ce6ccb826"
+  },
+  {
+    "file": "server\\test_security_components.py",
+    "lines": 265,
+    "symbols": [
+      "SecurityComponentTests"
+    ],
+    "sha256": "22620528931b8fae3b4ddc07042c15a1d524a8d22990b29850e99b876fac9708"
+  },
+  {
+    "file": "server\\test_testbed_control.py",
+    "lines": 127,
+    "symbols": [
+      "sample_settings",
+      "TestbedControlTests"
+    ],
+    "sha256": "8f667bfa7374a832ce31802a89c40959f6fc581ebd4dd19346835baf8898b788"
+  },
+  {
+    "file": "server\\vpn_analyzer_agent.py",
+    "lines": 525,
+    "symbols": [
+      "load_config",
+      "save_config",
+      "collect_telemetry",
+      "analyze_local",
+      "capture_local",
+      "send_cloud",
+      "submit_gateway_telemetry",
+      "send_gateway_heartbeat",
+      "poll_testbed_job",
+      "apply_testbed_job",
+      "submit_testbed_job_result",
+      "enroll_agent",
+      "run_agent",
+      "build_parser",
+      "main"
+    ],
+    "sha256": "8d2b9a224cb3e619d64795773a754b8b6f43e79ea8144e0480e5811bd4bf376b"
+  },
+  {
+    "file": "src\\App.tsx",
+    "lines": 766,
+    "symbols": [
+      "TestbedGeneratorModal",
+      "ReportModal",
+      "GatewayReportModal"
+    ],
+    "sha256": "0de7a1d1c511bbd3b04c1786001bed1ac05732e361951bc196ef2d550a93dd19"
+  },
+  {
+    "file": "src\\index.css",
+    "lines": 51,
+    "symbols": [],
+    "sha256": "66e6e359c54213adb8c746f2d98f7c540a4ef4f529ac5e355217c612328f1968"
+  },
+  {
+    "file": "src\\main.tsx",
+    "lines": 10,
+    "symbols": [],
+    "sha256": "8b129211a1e36a01a0c294633d8463c9a661a78fe04c3f26f45ca2fdabdedff0"
+  },
+  {
+    "file": "src\\types.ts",
+    "lines": 312,
+    "symbols": [],
+    "sha256": "b68f95e8a9b0707121ba35ad39796e2aacd4e7c687e45d665baeeb37997a63e6"
+  },
+  {
+    "file": "tests\\assessmentReport.test.ts",
+    "lines": 68,
+    "symbols": [
+      "capture"
+    ],
+    "sha256": "9b794c558f68b41ceecc747cb91c03c00029469984a642c2f57cf4d617fd1af7"
+  },
+  {
+    "file": "tests\\pcapParser.test.ts",
+    "lines": 241,
+    "symbols": [
+      "writeU16",
+      "writeU32",
+      "makeIkeV2Pcap",
+      "makeNatTEspPcap",
+      "makeAhPcap",
+      "makePcapNg",
+      "makeEncryptedIkePcap"
+    ],
+    "sha256": "ef7fabc687e0174c16349c69a1a7787f6993597caeb87113842ae68b1b4e85c8"
+  },
+  {
+    "file": "tests\\securityAuditor.test.ts",
+    "lines": 107,
+    "symbols": [],
+    "sha256": "e4f4e0c2b3d9d2a29600beb4db45a20d401c78a586f69444a909e7b171ef4bf2"
+  },
+  {
+    "file": "tests\\telemetryFlow.test.ts",
+    "lines": 57,
+    "symbols": [],
+    "sha256": "a3eeb8ebbe1e573a76ec365acbd2e33de1c76c1a5131c4b59e2d0b65657d2db1"
+  },
+  {
+    "file": "tests\\testbedConfig.test.ts",
+    "lines": 56,
+    "symbols": [
+      "settings"
+    ],
+    "sha256": "21f77b0d84ee39bfe7e1e0fcdfdbbea0b62c16960c55f7cfdfd1945c0823f320"
+  },
+  {
+    "file": "src\\analysis\\evidence.ts",
+    "lines": 108,
+    "symbols": [
+      "observed",
+      "unavailable",
+      "buildSecurityAssociationEvidence",
+      "addSecurityAssociationEvidence"
+    ],
+    "sha256": "fde55f85382176cb9ae6d31f334f5ec50e9e448570f934094dfc9fa6c9a42124"
+  },
+  {
+    "file": "src\\components\\AddGatewayModal.tsx",
+    "lines": 494,
+    "symbols": [
+      "AddGatewayModal"
+    ],
+    "sha256": "0dab6bff2b19dda0f6a544b6259cdd5c3693db5e0d73b18d4d42d395f81c842c"
+  },
+  {
+    "file": "src\\components\\AiTrafficAnalysis.tsx",
+    "lines": 255,
+    "symbols": [
+      "TARGET_DISPLAY_NAMES",
+      "CLASS_HUMAN_NAMES",
+      "AiTrafficAnalysis"
+    ],
+    "sha256": "9ad1eefca173a67ec90aaff747daad268904e1db98c5788a1130bd56acd05378"
+  },
+  {
+    "file": "src\\components\\AssessmentOverview.tsx",
+    "lines": 67,
+    "symbols": [
+      "AssessmentOverview"
+    ],
+    "sha256": "2b41d6b4d531e0d369424d9453f891f14148cb03c7bbce23a55a3a73b33a44a9"
+  },
+  {
+    "file": "src\\components\\CombinedAnalysisPanel.tsx",
+    "lines": 309,
+    "symbols": [
+      "CombinedAnalysisPanel"
+    ],
+    "sha256": "8d9e7695836d8d7e69e66a0377445998a5382bbb1dc21c3d25a83436ce99c40d"
+  },
+  {
+    "file": "src\\components\\DashboardView.tsx",
+    "lines": 309,
+    "symbols": [
+      "DashboardView"
+    ],
+    "sha256": "5260acfe71d4cb02b157d043a2f5215addcd34cd583f1ffa8273f94f48aeae08"
+  },
+  {
+    "file": "src\\components\\GatewayDetailsModal.tsx",
+    "lines": 534,
+    "symbols": [
+      "GatewayReportModal",
+      "GatewayDetailsModal"
+    ],
+    "sha256": "6b13b13d6ca6cd6b010144aefa72937ba2a564459c18fa95f87bc9eb141f765c"
+  },
+  {
+    "file": "src\\components\\GatewayReportModal.tsx",
+    "lines": 635,
+    "symbols": [
+      "GatewayReportModal"
+    ],
+    "sha256": "a27c101a59fdba958c6aecb856c9c647a3fa44102570f68ac0cf7be1a077e831"
+  },
+  {
+    "file": "src\\components\\GatewaysManager.tsx",
+    "lines": 412,
+    "symbols": [
+      "GatewayReportModal",
+      "GatewaysManager"
+    ],
+    "sha256": "f7102b97316e283f610b25abadec2b0866395d4af1e8aa1892db792921a200ea"
+  },
+  {
+    "file": "src\\components\\Header.tsx",
+    "lines": 142,
+    "symbols": [
+      "Header"
+    ],
+    "sha256": "1a7c6ce56ff61056f4e864e639dbeca3335da6b5c8a01e1568168ba2f56c954d"
+  },
+  {
+    "file": "src\\components\\MetricCards.tsx",
+    "lines": 183,
+    "symbols": [
+      "MetricCards"
+    ],
+    "sha256": "8695127325552a5e8a02e29b026826de0ef674f938aa411b49956424ad787681"
+  },
+  {
+    "file": "src\\components\\PacketViewer.tsx",
+    "lines": 215,
+    "symbols": [
+      "PacketViewer"
+    ],
+    "sha256": "64c71a952a753151e0c56fd383185611bda13269743e86568fe181f34b284853"
+  },
+  {
+    "file": "src\\components\\ReportModal.tsx",
+    "lines": 587,
+    "symbols": [
+      "ReportModal"
+    ],
+    "sha256": "946339f70846327ffdc0f619faa3ebc023bbb5c143da3bf26d3411d10dfaeb20"
+  },
+  {
+    "file": "src\\components\\ReportsView.tsx",
+    "lines": 178,
+    "symbols": [
+      "ReportsView"
+    ],
+    "sha256": "bedf4c02115d74d7e60c86f27d2b4e83df150cd470e6b2c4654cbf124cd2526f"
+  },
+  {
+    "file": "src\\components\\SecurityAssessment.tsx",
+    "lines": 339,
+    "symbols": [
+      "severityBadge",
+      "evidenceBadge",
+      "pfsLabel",
+      "DetailRow",
+      "FindingCard",
+      "SecurityAssessment"
+    ],
+    "sha256": "3737ca01f9bf9e72a9fbfaf676c81f32bc1dfa617b6f57ace110f37db085c9c4"
+  },
+  {
+    "file": "src\\components\\TestbedGeneratorModal.tsx",
+    "lines": 533,
+    "symbols": [
+      "TestbedGeneratorModal"
+    ],
+    "sha256": "31ccb360251a18c904dbb92f5cbed8299e4a50bc670a5f0fd8ef5ea469b5412b"
+  },
+  {
+    "file": "src\\utils\\aiClassifier.ts",
+    "lines": 163,
+    "symbols": [
+      "calculateEntropy",
+      "classifyEspTraffic"
+    ],
+    "sha256": "557344eea29fc43685a3f8452820f83c00163297a551ac73b524057682bc0c8d"
+  },
+  {
+    "file": "src\\utils\\assessmentReport.ts",
+    "lines": 234,
+    "symbols": [
+      "buildAssessmentSnapshot",
+      "display",
+      "yesNoUnknown",
+      "mlTargetName",
+      "mlClassName",
+      "buildMlPredictionSection",
+      "buildReportSections",
+      "formatAssessmentMarkdown"
+    ],
+    "sha256": "8686423d59bcd8dc1b7a8a760ccccd684837dbf6f681a8d124443c0ace6ebc1e"
+  },
+  {
+    "file": "src\\utils\\gatewayClient.ts",
+    "lines": 332,
+    "symbols": [
+      "fetchGateways",
+      "fetchGateway",
+      "createGateway",
+      "regenerateEnrollmentToken",
+      "revokeGateway",
+      "removeGateway",
+      "correlateWithGateway",
+      "jsonStringify",
+      "getInstallCommand",
+      "getEnrollCommand",
+      "getStartCommand",
+      "getDownloadUrl",
+      "fetchGatewayReport",
+      "generateGatewayAiReport",
+      "queueTestbedApply",
+      "getTestbedApplyStatus"
+    ],
+    "sha256": "7162f20ab0d81992430b85025647da54a2adafee0240a2f6be22b09b4cc531dd"
+  },
+  {
+    "file": "src\\utils\\gatewayPdf.ts",
+    "lines": 388,
+    "symbols": [
+      "palette",
+      "severityColors",
+      "displayValue",
+      "downloadGatewayReportPdf"
+    ],
+    "sha256": "c89219f952e3a3f046e58c0d9baeb8f097146240e159795aa12bfa3235acfc77"
+  },
+  {
+    "file": "src\\utils\\pcapParser.ts",
+    "lines": 2890,
+    "symbols": [
+      "PCAP_MAGIC_BE_USEC",
+      "PCAP_MAGIC_LE_USEC",
+      "PCAP_MAGIC_BE_NSEC",
+      "PCAP_MAGIC_LE_NSEC",
+      "PCAPNG_SECTION_HEADER",
+      "PCAPNG_INTERFACE_DESCRIPTION",
+      "PCAPNG_SIMPLE_PACKET",
+      "PCAPNG_ENHANCED_PACKET",
+      "LINKTYPE_ETHERNET",
+      "LINKTYPE_RAW",
+      "LINKTYPE_LINUX_SLL",
+      "LINKTYPE_LINUX_SLL2",
+      "ETHERTYPE_IPV4",
+      "ETHERTYPE_IPV6",
+      "ETHERTYPE_VLAN",
+      "ETHERTYPE_QINQ",
+      "ETHERTYPE_QINQ2",
+      "IPPROTO_ICMP",
+      "IPPROTO_TCP",
+      "IPPROTO_UDP",
+      "IPPROTO_AH",
+      "IPPROTO_ESP",
+      "IKE_SA_INIT",
+      "IKE_AUTH",
+      "CREATE_CHILD_SA",
+      "IKE_PAYLOAD_NONE",
+      "IKE_PAYLOAD_SA",
+      "IKE_PAYLOAD_KE",
+      "IKE_PAYLOAD_IDi",
+      "IKE_PAYLOAD_IDr",
+      "IKE_PAYLOAD_CERT",
+      "IKE_PAYLOAD_CERTREQ",
+      "IKE_PAYLOAD_AUTH",
+      "IKE_PAYLOAD_NONCE",
+      "IKE_PAYLOAD_NOTIFY",
+      "IKE_PAYLOAD_DELETE",
+      "IKE_PAYLOAD_VENDOR",
+      "IKE_PAYLOAD_TSi",
+      "IKE_PAYLOAD_TSr",
+      "IKE_PAYLOAD_ENCRYPTED",
+      "IKE_PAYLOAD_CONFIGURATION",
+      "IKE_PAYLOAD_EAP",
+      "IKE_PAYLOAD_GSPM",
+      "IKE_PAYLOAD_GROUP",
+      "TRANSFORM_ENCR",
+      "TRANSFORM_PRF",
+      "TRANSFORM_INTEG",
+      "TRANSFORM_DH",
+      "TRANSFORM_ESN",
+      "ATTR_KEY_LENGTH",
+      "hex",
+      "hex0x",
+      "readU16",
+      "readU32",
+      "readU64Hex",
+      "ipv4ToString",
+      "ipv6ToString",
+      "isZero4",
+      "payloadName",
+      "ikeV1PayloadName",
+      "notifyName",
+      "parseTrafficSelectors",
+      "exchangeName",
+      "ikeV1ExchangeName",
+      "encryptionName",
+      "prfName",
+      "integrityName",
+      "dhName",
+      "esnName",
+      "transformName",
+      "parseTransformAttributes",
+      "parseTransform",
+      "parseProposal",
+      "parseSaPayload",
+      "parseIkeMessage",
+      "extractCryptoFromProposals",
+      "parseLinkLayer",
+      "parseIPv4",
+      "parseIPv6",
+      "parseUdp",
+      "isIkeUdpPort",
+      "readPcapNgOptions",
+      "toClassicPcap",
+      "convertPcapNgToClassicPcap",
+      "parseUploadedFile",
+      "generateSyntheticPcapBlob"
+    ],
+    "sha256": "ed0f39cd4efaa1a5de2d102717b6046c547e5bfc0201bc45c6544f3f0982139c"
+  },
+  {
+    "file": "src\\utils\\pcapReportClient.ts",
+    "lines": 92,
+    "symbols": [
+      "generatePcapReportNarrative"
+    ],
+    "sha256": "6ca00570f4ad21626356d336f7bcf1520b1296556423510fccb6538235c5b46f"
+  },
+  {
+    "file": "src\\utils\\reportClient.ts",
+    "lines": 102,
+    "symbols": [
+      "buildCaptureAiReportPayload",
+      "generateCaptureAiNarrative"
+    ],
+    "sha256": "1a118a0b9faa3e7225aeb2f70ecaa099014f7ef07433014bd1fcc48ea7a923db"
+  },
+  {
+    "file": "src\\utils\\scapyClient.ts",
+    "lines": 135,
+    "symbols": [
+      "SCAPY_ANALYZER_URL",
+      "ANALYZER_API_URL",
+      "getApiBaseUrl",
+      "buildGatewayTelemetrySummary",
+      "parseWithScapy",
+      "registerAnalysis",
+      "fetchAnalysisTelemetry"
+    ],
+    "sha256": "79206a25890e454b31f40cddc9381353b0e77925ec453ecaed4693d60a82fd37"
+  },
+  {
+    "file": "src\\utils\\securityAuditor.ts",
+    "lines": 365,
+    "symbols": [
+      "auditIpsecSecurity"
+    ],
+    "sha256": "5efa0ebd47b824c7f75b26b674095b4d738719fcd8f7024813c246174c5bb76c"
+  },
+  {
+    "file": "src\\utils\\testbedConfig.ts",
+    "lines": 144,
+    "symbols": [
+      "dhSuffix",
+      "safeId",
+      "safeName",
+      "safePath",
+      "validIpv4",
+      "validIpv6",
+      "validCidr",
+      "validateTestbedSettings",
+      "renderSwanctlConfig",
+      "buildManualCommands"
+    ],
+    "sha256": "5c80aebb0964e85172856b2b14887481e2b8b6f8a4f795cf688a0d0b2a548125"
+  },
+  {
+    "file": "src\\components\\workstation\\CaptureProfile.tsx",
+    "lines": 16,
+    "symbols": [
+      "readable",
+      "CaptureProfile"
+    ],
+    "sha256": "ee9b244adec8060e7c1536c5526e1fbce9d038c442cd0c8b5d48b385cb470d08"
+  },
+  {
+    "file": "src\\components\\workstation\\WorkstationTools.tsx",
+    "lines": 50,
+    "symbols": [
+      "useThemePreference",
+      "SourceBadge",
+      "ConfidenceIndicator",
+      "StatusDrawer",
+      "CommandPalette",
+      "ThemeMenu",
+      "PipelineStepper"
+    ],
+    "sha256": "1555d55180e3f3d5a7dca4fc1db59fe8ecf58c76c57e3643de3eb18274dac13d"
+  },
+  {
+    "file": "feature_extractor\\ml\\ablation_test.py",
+    "lines": 576,
+    "symbols": [
+      "train_and_evaluate",
+      "main"
+    ],
+    "sha256": "7900b156776318bf36737a72287d7d3c2178f5afd3bbd92897161b42547a7674"
+  },
+  {
+    "file": "feature_extractor\\ml\\cross_validate.py",
+    "lines": 404,
+    "symbols": [
+      "run_target",
+      "main"
+    ],
+    "sha256": "0d142a32a892178c99accdf7652755beee151ddd232fb134bde5bc89a55ab888"
+  },
+  {
+    "file": "feature_extractor\\ml\\error_analysis.py",
+    "lines": 718,
+    "symbols": [
+      "load_model",
+      "find_feature_json",
+      "load_feature_json",
+      "print_features",
+      "analyze_target",
+      "analyze_encryption_patterns",
+      "main"
+    ],
+    "sha256": "02f807280786c50a524c850c0cafb1a1cd5ec735ddccef88510eb8fafb21acd9"
+  },
+  {
+    "file": "feature_extractor\\ml\\evaluate_models.py",
+    "lines": 235,
+    "symbols": [
+      "load_model",
+      "evaluate_target",
+      "main"
+    ],
+    "sha256": "67e86674d0474534cf96adb4d52145ad107733599183b0f80839db34709369e5"
+  },
+  {
+    "file": "feature_extractor\\ml\\feature_analysis.py",
+    "lines": 540,
+    "symbols": [
+      "analyze_target",
+      "main"
+    ],
+    "sha256": "9abaa538b19025098862ce8f55817fb7caa4a36505534856868d4f2652125b7a"
+  },
+  {
+    "file": "feature_extractor\\ml\\predict.py",
+    "lines": 619,
+    "symbols": [
+      "load_model",
+      "load_feature_json",
+      "predict_features",
+      "print_prediction",
+      "predict_from_json",
+      "main"
+    ],
+    "sha256": "bfb362029e5ab2725142c0bc9fe9b87fc9b5ae9ca713d90d457b072798d472ea"
+  },
+  {
+    "file": "feature_extractor\\ml\\train_baseline.py",
+    "lines": 329,
+    "symbols": [
+      "main"
+    ],
+    "sha256": "3549630fe16f215516b52aa9224df0d198ab7dbe56bbe8840136e2841aaa9a0e"
+  },
+  {
+    "file": "feature_extractor\\ml\\train_final_models.py",
+    "lines": 192,
+    "symbols": [
+      "main"
+    ],
+    "sha256": "73656af9d416ad63d283a7c4062337f881f088ce266b6a4482e38c62efa9d22a"
+  },
+  {
+    "file": "backend\\app\\capture_parser.py",
+    "lines": 534,
+    "symbols": [
+      "CaptureParseError",
+      "LinkPacket",
+      "_mac",
+      "_read_uint",
+      "_format_ip",
+      "_ethernet",
+      "_link_payload",
+      "_ipv6_next_header",
+      "_protocol_name",
+      "_transform_name",
+      "_parse_transform",
+      "_parse_proposals",
+      "_parse_traffic_selectors",
+      "_parse_ike_message",
+      "_decode_network_packet",
+      "_classic_packets",
+      "_pcapng_packets",
+      "parse_capture"
+    ],
+    "sha256": "bfb1eea69673d2d2bb00db0c6ca064d3639740d6756c44828bf915b62af9aca7"
+  },
+  {
+    "file": "backend\\app\\feature_extraction.py",
+    "lines": 180,
+    "symbols": [
+      "ExtractionError",
+      "_import_extractor",
+      "extract_features_from_bytes",
+      "validate_ml_features"
+    ],
+    "sha256": "3c495a2bc9e3e85ede443541f333bfa14d57fe6fa155bbe5d79181aecb46bc91"
+  },
+  {
+    "file": "backend\\app\\main.py",
+    "lines": 457,
+    "symbols": [
+      "_run_analysis_job",
+      "MLPredictionResult",
+      "MLPredictions",
+      "ObservedFeatures",
+      "MLAnalysisResult",
+      "MLErrorResponse",
+      "lifespan",
+      "root",
+      "health",
+      "ml_health",
+      "ml_analyze",
+      "upload_capture",
+      "list_captures",
+      "get_capture",
+      "create_analysis_job",
+      "get_analysis_job",
+      "get_analysis"
+    ],
+    "sha256": "566e8e8ede36e912dac585d96ec170e202d12161144d2f412bf0b86174e02551"
+  },
+  {
+    "file": "backend\\app\\ml_assessment.py",
+    "lines": 393,
+    "symbols": [
+      "MLSecurityFinding",
+      "_confidence_label",
+      "_assess_encryption",
+      "_assess_hash",
+      "_assess_dh_group",
+      "_assess_pfs",
+      "_assess_observed_features",
+      "assess_ml_results"
+    ],
+    "sha256": "d428c7cb716fce799fb9c6bf5a5b7847050b461a16ecb0fd1063f1fe980a724d"
+  },
+  {
+    "file": "backend\\app\\ml_inference.py",
+    "lines": 208,
+    "symbols": [
+      "_load_models",
+      "get_model_metadata",
+      "InferenceError",
+      "run_inference",
+      "preload_models"
+    ],
+    "sha256": "2999f66e4f0744647f5775d555a56ec312e22728993d6d83017dfdcb2065c0e8"
+  },
+  {
+    "file": "backend\\app\\models.py",
+    "lines": 261,
+    "symbols": [
+      "EvidenceStatus",
+      "EvidenceItem",
+      "EvidenceValue",
+      "CaptureMetadata",
+      "CaptureSummary",
+      "AnalysisJob",
+      "HealthResponse",
+      "ErrorResponse",
+      "AnalysisPlaceholder",
+      "ParserIssue",
+      "ParsedPacket",
+      "ProtocolSummary",
+      "IKETransform",
+      "TrafficSelector",
+      "IKEProposal",
+      "IKEMessage",
+      "CaptureAnalysis",
+      "ChildSA",
+      "IKESecurityAssociation",
+      "ESPFlow",
+      "ESPSequenceAnalysis",
+      "SecurityFinding",
+      "SecurityAssessment",
+      "IKEEvent"
+    ],
+    "sha256": "5529ff28e86c3a4b32c20bab9894b38542388dd10118c5d45a0ff6b286f9dc43"
+  },
+  {
+    "file": "backend\\app\\sa_correlator.py",
+    "lines": 217,
+    "symbols": [
+      "_normalize_spi",
+      "_selected_transforms",
+      "_has_pfs",
+      "_extract_lifetime_seconds",
+      "_detect_esn",
+      "_proposal_role",
+      "correlate_security_associations"
+    ],
+    "sha256": "4fdbb3546c49d7909d814e2478ceb739e3c74ee8236bea4a2604e62b4c20e24a"
+  },
+  {
+    "file": "backend\\app\\security_analysis.py",
+    "lines": 244,
+    "symbols": [
+      "_normalize_spi",
+      "_sequence_analysis",
+      "_finding",
+      "_merge_findings",
+      "assess_security"
+    ],
+    "sha256": "a599bbd38214fe069e29c65a02049fac2d008533456e0df5fd69a986e1bdabc2"
+  },
+  {
+    "file": "backend\\app\\storage.py",
+    "lines": 154,
+    "symbols": [
+      "CaptureStorage"
+    ],
+    "sha256": "6fa3c9521b04824083e78fea7733c41287f845fbcfbee450fcaa41e2c90c4142"
+  },
+  {
+    "file": "backend\\tests\\test_api.py",
+    "lines": 621,
+    "symbols": [
+      "_pcap_packet",
+      "_pcap_packets",
+      "_ethernet_ipv4_esp_frame",
+      "_pcapng_packet",
+      "_pcapng_standard_packet",
+      "_ethernet_ipv6_udp_frame",
+      "_ethernet_ipv4_nat_t_ike_frame",
+      "_ethernet_ipv4_ike_sa_frame",
+      "test_health",
+      "test_upload_and_queue_capture",
+      "test_analysis_job_completes_for_valid_capture",
+      "test_empty_upload_is_rejected",
+      "test_analysis_extracts_ipv4_esp_fields",
+      "test_analysis_parses_pcapng",
+      "test_analysis_parses_pcapng_standard_packet_block",
+      "test_analysis_parses_ipv6_endpoints_and_ike",
+      "test_analysis_surfaces_encrypted_ike_limitation_in_security_assessment",
+      "test_parser_records_ike_fragment_metadata",
+      "test_analysis_marks_nat_t_ike_on_udp_4500",
+      "test_analysis_decodes_ike_sa_proposal_transforms",
+      "test_analysis_correlates_child_sa_spi_with_esp_flow",
+      "test_analysis_tracks_selectors_lifecycle_and_direction",
+      "test_analysis_extracts_negotiated_child_sa_pfs_and_lifetime",
+      "test_child_sa_rekey_lifecycle_and_esn_are_recorded",
+      "test_security_analysis_reports_duplicate_esp_sequence",
+      "test_security_analysis_accepts_esp_sequence_rollover",
+      "test_security_analysis_merges_repeated_weak_transform_findings",
+      "test_security_analysis_reports_missing_pfs_only_for_selected_child_sa",
+      "test_api_root_endpoints",
+      "test_upload_alias_and_trailing_slashes"
+    ],
+    "sha256": "06a0b05e0b0e37d10d5e9928bf8b4ff7b25f0cfae61804ee01bcd7951b28ea4f"
+  }
+]

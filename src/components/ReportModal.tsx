@@ -1,6 +1,23 @@
-import React, { useState } from 'react';
-import { X, Download, Printer, Copy, Check, ShieldCheck, ShieldAlert, FileText } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  X,
+  Download,
+  FileDown,
+  Copy,
+  Check,
+  ShieldCheck,
+  ShieldAlert,
+  FileText,
+  FileJson,
+  Wifi,
+  Sparkles,
+} from 'lucide-react';
+import { CaptureAiNarrative, generateCaptureAiNarrative } from '../utils/reportClient';
+import { AssessmentReportKind, buildAssessmentSnapshot, buildReportSections, formatAssessmentMarkdown } from '../utils/assessmentReport';
 import { AiPrediction, IkeSecurityAssociation, SecurityScorecard, VpnCaptureScenario } from '../types';
+import { CombinedAnalysisPanel } from './CombinedAnalysisPanel';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface ReportModalProps {
   isOpen: boolean;
@@ -8,6 +25,7 @@ interface ReportModalProps {
   scenario: VpnCaptureScenario;
   scorecard: SecurityScorecard;
   prediction: AiPrediction;
+  initialKind?: AssessmentReportKind;
 }
 
 export const ReportModal: React.FC<ReportModalProps> = ({
@@ -16,11 +34,44 @@ export const ReportModal: React.FC<ReportModalProps> = ({
   scenario,
   scorecard,
   prediction,
+  initialKind = 'EXECUTIVE',
 }) => {
-  const [reportType, setReportType] = useState<'EXECUTIVE' | 'TECHNICAL'>('EXECUTIVE');
+  const [reportType, setReportType] = useState<AssessmentReportKind>(initialKind);
   const [copied, setCopied] = useState(false);
+  const [aiNarrative, setAiNarrative] = useState<CaptureAiNarrative | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const requestedScenario = useRef<string | null>(null);
+  const currentScenario = useRef(scenario.id);
+  currentScenario.current = scenario.id;
+
+  useEffect(() => { if (isOpen) setReportType(initialKind); }, [isOpen, initialKind, scenario.id]);
+
+  // Deterministic reports are ready immediately. Enrich the current capture
+  // once when the report opens; a provider failure leaves both reports usable.
+  useEffect(() => {
+    if (!isOpen || requestedScenario.current === scenario.id) return;
+    requestedScenario.current = scenario.id;
+    setAiNarrative(null);
+    setAiError(null);
+    setAiLoading(true);
+    generateCaptureAiNarrative(scenario, scorecard, prediction)
+      .then((result) => { if (currentScenario.current === scenario.id) setAiNarrative(result); })
+      .catch((error: unknown) => { if (currentScenario.current === scenario.id) setAiError(error instanceof Error ? error.message : 'AI narrative generation failed.'); })
+      .finally(() => { if (currentScenario.current === scenario.id) setAiLoading(false); });
+  }, [isOpen, scenario, scorecard, prediction]);
 
   if (!isOpen) return null;
+
+  const snapshot = buildAssessmentSnapshot(scenario, scorecard, prediction);
+  const reportSections = buildReportSections(reportType, scenario, scorecard, prediction, aiNarrative?.narrative);
+
+  const handleGenerateAiNarrative = async () => {
+    setAiLoading(true); setAiError(null);
+    try { setAiNarrative(await generateCaptureAiNarrative(scenario, scorecard, prediction)); }
+    catch (error) { setAiError(error instanceof Error ? error.message : 'AI narrative generation failed.'); }
+    finally { setAiLoading(false); }
+  };
 
   const handleCopyMarkdown = () => {
     const content = generateMarkdownReport();
@@ -40,106 +91,254 @@ export const ReportModal: React.FC<ReportModalProps> = ({
     URL.revokeObjectURL(url);
   };
 
-  const generateMarkdownReport = () => {
-    return `# NTRO IPsec Security Assessment Report: ${scenario.name}
-**Report Type:** ${reportType === 'EXECUTIVE' ? 'Executive Leadership Summary' : 'Detailed Technical Protocol Audit'}
-**Target Organization:** ${scenario.organization}
-**Generated Date:** ${new Date().toISOString()}
-
----
-
-## 1. Overall Security Scorecard
-- **Security Score:** ${scorecard.totalScore} / 100 (${scorecard.rating.toUpperCase()})
-- **NIST SP 800-77 Rev. 1 Status:** ${scorecard.complianceNist ? 'COMPLIANT' : 'NON-COMPLIANT'}
-- **RFC 8221 Cryptographic Status:** ${scorecard.complianceRfc8221 ? 'COMPLIANT' : 'NON-COMPLIANT'}
-- **NSA CNSA Suite Status:** ${scorecard.complianceNsaCnsa ? 'COMPLIANT' : 'NON-COMPLIANT'}
-
----
-
-## 2. Inferred Traffic & AI Classification
-- **Predicted Payload Activity:** ${prediction.predictedClass}
-- **AI Model Confidence:** ${prediction.confidenceScore}%
-- **Entropy:** ${scenario.features.calculatedEntropy} / 8.00 bits (Verified encrypted payload)
-
----
-
-## 3. Cryptographic Parameters
-- **IKE Version:** ${scenario.sa.ikeVersion}
-- **Operating Mode:** ${scenario.sa.operationalMode} (${scenario.sa.ipVersion})
-- **Symmetric Cipher:** ${scenario.sa.encryptionAlgorithm} (${scenario.sa.encryptionKeyBits}-bit)
-- **Integrity / Hash:** ${scenario.sa.authIntegrityAlgorithm}
-- **Diffie-Hellman Group:** ${scenario.sa.dhGroup} (${scenario.sa.dhBits}-bit)
-- **Perfect Forward Secrecy (PFS):** ${scenario.sa.pfsEnabled === null ? 'NOT OBSERVED' : scenario.sa.pfsEnabled ? 'ENABLED' : 'DISABLED'}
-- **Key Lifetime:** ${scenario.sa.keyLifetimeSeconds === null ? 'NOT OBSERVED' : `${scenario.sa.keyLifetimeSeconds / 3600} hours`}
-- **Replay Protection:** ${scenario.sa.replayProtection === null ? 'NOT OBSERVED' : scenario.sa.replayProtection ? 'ENABLED' : 'DISABLED'}
-
----
-
-## 4. Key Findings & Remediation Plan
-${scorecard.findings
-  .filter((f) => f.severity !== 'Pass')
-  .map(
-    (f) => `### [${f.severity.toUpperCase()}] ${f.parameter}: ${f.threatName}
-- **Detected:** ${f.detectedValue}
-- **Standard Requirement:** ${f.recommendedValue}
-- **Threat:** ${f.description}
-- **Action Required:** ${f.remediation}
-`
-  )
-  .join('\n')}
-`;
+  const handleDownloadJson = () => {
+    const exportData = {
+      reportType: 'IPSEC_SECURITY_AUDIT_EVIDENCE',
+      generatedAt: new Date().toISOString(),
+      scenario: {
+        id: scenario.id,
+        name: scenario.name,
+        organization: scenario.organization,
+        description: scenario.description,
+        sa: scenario.sa,
+        features: scenario.features,
+        packetCount: scenario.packets.length,
+        mlPredictions: scenario.mlPredictions ?? null,
+        mlSecurityFindings: scenario.mlSecurityFindings ?? [],
+        gatewayTelemetry: scenario.gatewayTelemetry ?? null,
+        correlation: scenario.correlation ?? null,
+      },
+      scorecard,
+      prediction,
+      aiNarrative,
+      assessment: snapshot,
+      sections: reportSections,
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `IPsec_Security_Audit_${scenario.id}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
+  const handleDownloadPdf = () => {
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 14;
+    let y = 16;
+
+    const section = (title: string) => {
+      if (y > pageHeight - 22) {
+        doc.addPage();
+        y = margin;
+      }
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.setTextColor(25, 50, 72);
+      doc.text(title, margin, y);
+      y += 7;
+    };
+    const paragraph = (text: string) => {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(45, 55, 65);
+      const lines = doc.splitTextToSize(text, pageWidth - margin * 2);
+      if (y + lines.length * 4.5 > pageHeight - margin) {
+        doc.addPage();
+        y = margin;
+      }
+      doc.text(lines, margin, y);
+      y += lines.length * 4.5 + 4;
+    };
+    const table = (head: string[], body: string[][]) => {
+      if (y > pageHeight - 25) {
+        doc.addPage();
+        y = margin;
+      }
+      autoTable(doc, {
+        startY: y,
+        head: [head],
+        body: body.length ? body : [["No data", ...head.slice(1).map(() => "")]],
+        margin: { left: margin, right: margin },
+        styles: { font: 'helvetica', fontSize: 7.5, cellPadding: 2, overflow: 'linebreak' },
+        headStyles: { fillColor: [28, 66, 83], textColor: 255 },
+        alternateRowStyles: { fillColor: [245, 248, 249] },
+      });
+      y = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? y + 12;
+      y += 7;
+    };
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(17);
+    doc.setTextColor(24, 54, 70);
+    doc.text('IPsec Security Assessment Report', margin, y);
+    y += 8;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(75, 85, 95);
+    doc.text(`${scenario.name} | ${reportType} | ${new Date().toISOString()}`, margin, y);
+    y += 9;
+
+    section('Assessment scores');
+    paragraph(`Security ${scorecard.totalScore}/100 | Observed risk ${snapshot.riskScore === null ? 'Not rated' : `${snapshot.riskScore}/100`} | Evidence coverage ${scorecard.evidenceCoveragePercent}% (${scorecard.assessmentStatus})`);
+    const barWidth = pageWidth - margin * 2;
+    const scoreBar = (label: string, value: number, color: [number, number, number]) => {
+      doc.setFontSize(8);
+      doc.text(`${label}: ${value}%`, margin, y);
+      y += 2;
+      doc.setFillColor(230, 235, 238);
+      doc.rect(margin, y, barWidth, 4, 'F');
+      doc.setFillColor(...color);
+      doc.rect(margin, y, barWidth * Math.max(0, Math.min(100, value)) / 100, 4, 'F');
+      y += 8;
+    };
+    scoreBar('Evidence-adjusted score', scorecard.totalScore, [25, 132, 105]);
+    scoreBar('Evidence coverage', scorecard.evidenceCoveragePercent, [42, 115, 165]);
+
+    for (const reportSection of reportSections) {
+      section(reportSection.title);
+      for (const line of reportSection.lines || []) paragraph(line);
+      if (reportSection.table) table(reportSection.table.headers, reportSection.table.rows);
+    }
+
+    const totalPages = doc.getNumberOfPages();
+    for (let page = 1; page <= totalPages; page += 1) {
+      doc.setPage(page);
+      doc.setFontSize(7);
+      doc.setTextColor(120, 130, 138);
+      doc.text('Unknown controls are not treated as secure; findings are based on the displayed evidence.', margin, pageHeight - 7);
+      doc.text(`${page}/${totalPages}`, pageWidth - margin, pageHeight - 7, { align: 'right' });
+    }
+    doc.save(`IPsec_Security_Report_${scenario.id}_${reportType.toLowerCase()}.pdf`);
+  };
+
+  const generateMarkdownReport = () => formatAssessmentMarkdown(reportType, scenario, reportSections);
+
+  const renderAiNarrativePanel = () => (
+    <section className="rounded-xl border border-violet-200 bg-violet-50/70 p-4">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+        <div className="max-w-3xl">
+          <div className="flex flex-wrap items-center gap-2">
+            <Sparkles className="h-4 w-4 text-violet-700" />
+            <h4 className="text-sm font-bold text-violet-950">AI report narrative</h4>
+            <span className="rounded bg-white px-1.5 py-0.5 text-[10px] font-semibold text-violet-700 ring-1 ring-violet-200">OPTIONAL</span>
+          </div>
+          <p className="mt-1 text-xs leading-relaxed text-violet-950/65">
+            Evidence-bound prose for quick reading. Scores, findings, and packet facts still come from the deterministic analyzer.
+          </p>
+        </div>
+        <button onClick={handleGenerateAiNarrative} disabled={aiLoading} className="w-fit shrink-0 rounded-lg bg-violet-700 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-violet-800 disabled:opacity-60">
+          {aiLoading ? 'Generating...' : aiNarrative ? 'Refresh narrative' : 'Generate narrative'}
+        </button>
+      </div>
+
+      {aiError && <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3"><p className="text-xs font-semibold text-amber-900">AI narrative unavailable</p><p className="mt-1 text-xs leading-relaxed text-amber-900/75">{aiError}</p></div>}
+
+      {aiNarrative ? (
+        <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+          <article className="rounded-lg border border-violet-100 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-2 border-b border-violet-100 pb-2">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-violet-700" />
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-violet-800">Executive summary</p>
+              </div>
+              <span className="rounded bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700">plain language</span>
+            </div>
+            <p className="mt-3 text-sm leading-7 text-stone-700">{aiNarrative.narrative.executive_summary}</p>
+          </article>
+
+          <article className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-2 border-b border-stone-100 pb-2">
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-stone-700">Technical interpretation</p>
+              <span className="rounded bg-stone-50 px-2 py-0.5 text-[10px] font-semibold text-stone-600">packet evidence</span>
+            </div>
+            <p className="mt-3 text-sm leading-7 text-stone-700">{aiNarrative.narrative.technical_interpretation}</p>
+          </article>
+
+          <div className="rounded-lg border border-violet-100 bg-white/80 p-3 text-[11px] text-violet-950/70 xl:col-span-2">
+            <div className="grid gap-2 sm:grid-cols-3">
+              <div><span className="font-bold text-violet-950">Source:</span> {aiNarrative.source}</div>
+              <div><span className="font-bold text-violet-950">Model:</span> {aiNarrative.model}</div>
+              <div><span className="font-bold text-violet-950">Constraint:</span> cannot alter evidence or scoring</div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-4 rounded-lg border border-violet-100 bg-white p-4 text-sm leading-relaxed text-violet-950/65">
+          {aiLoading ? 'Generating readable report text from the current evidence...' : 'AI prose has not been generated yet. The deterministic report sections below are still complete.'}
+        </div>
+      )}
+    </section>
+  );
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/55 p-4 backdrop-blur-sm animate-fade-in">
+      <div className="report-canvas flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-stone-300 shadow-[0_28px_80px_rgba(28,25,23,0.42)]">
         
         {/* Modal Header */}
-        <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/90">
+        <div className="flex items-center justify-between border-b border-stone-200 bg-white p-4 sm:p-5">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-700 text-white shadow-md shadow-teal-900/20">
               <FileText className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white">
-                Automated Security Assessment Report
-              </h2>
-              <p className="text-xs text-slate-400">
-                Official NTRO Protocol Analyzer Security Verification Document
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-bold text-stone-900">Security assessment report</h2>
+                <span className="rounded border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-amber-800">EVIDENCE-BOUND</span>
+              </div>
+              <p className="text-xs text-stone-500">
+                Packet evidence, rule-engine findings, and optional AI narrative
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             {/* View Switcher */}
-            <div className="inline-flex rounded-lg bg-slate-800 p-0.5 border border-slate-700">
+            <div className="inline-flex rounded-lg border border-stone-300 bg-stone-100 p-0.5">
               <button
                 id="btn-report-exec"
                 onClick={() => setReportType('EXECUTIVE')}
                 className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
                   reportType === 'EXECUTIVE'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-stone-900 text-white shadow-sm'
+                    : 'text-stone-500 hover:bg-white hover:text-stone-900'
                 }`}
               >
-                Executive Report
+                Executive
               </button>
               <button
                 id="btn-report-tech"
                 onClick={() => setReportType('TECHNICAL')}
                 className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
                   reportType === 'TECHNICAL'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-stone-900 text-white shadow-sm'
+                    : 'text-stone-500 hover:bg-white hover:text-stone-900'
                 }`}
               >
-                Technical Report
+                Technical
               </button>
+              {scenario.gatewayTelemetry && (
+                <button
+                  id="btn-report-combined"
+                  onClick={() => setReportType('COMBINED')}
+                  className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer flex items-center gap-1 ${
+                    reportType === 'COMBINED'
+                      ? 'bg-stone-900 text-white shadow-sm'
+                      : 'text-stone-500 hover:bg-white hover:text-stone-900'
+                  }`}
+                >
+                  <Wifi className="w-3 h-3" />
+                  <span>Mode 3 Combined</span>
+                </button>
+              )}
             </div>
 
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer ml-2"
+              className="ml-2 flex h-8 w-8 items-center justify-center rounded-lg bg-stone-100 text-stone-500 transition-colors hover:bg-stone-200 hover:text-stone-900 cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -147,78 +346,99 @@ ${scorecard.findings
         </div>
 
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 text-slate-300 text-xs">
-          
-          {reportType === 'EXECUTIVE' ? (
+        <div className="report-canvas flex-1 space-y-6 overflow-y-auto p-6 text-xs text-stone-700">
+          {reportType === 'COMBINED' && scenario.gatewayTelemetry ? (
+            /* Mode 3 Combined Analysis View */
+            <div className="space-y-6">
+              <CombinedAnalysisPanel
+                sa={scenario.sa}
+                gatewayTelemetry={scenario.gatewayTelemetry}
+                correlation={scenario.correlation}
+                packetCount={scenario.packets.length}
+              />
+              {renderAiNarrativePanel()}
+            </div>
+          ) : reportType === 'EXECUTIVE' ? (
             /* Executive Report View */
             <div className="space-y-6">
               
-              {/* Executive Banner */}
-              <div className="p-5 rounded-xl bg-slate-800/60 border border-slate-700/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                  <span className="text-[11px] font-bold text-blue-400 uppercase tracking-wider">
-                    Executive Threat &amp; Compliance Verdict
-                  </span>
-                  <h3 className="text-lg font-bold text-white mt-0.5">
-                    {scenario.name}
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Deployment Context: {scenario.description}
-                  </p>
-                </div>
-
-                <div className="text-right shrink-0">
-                  <div className="text-2xl font-black text-white">
-                    {scorecard.totalScore} <span className="text-sm font-normal text-slate-400">/ 100</span>
+              {/* Executive assessment brief */}
+              <section className="overflow-hidden rounded-2xl border border-stone-300 bg-white shadow-[0_12px_30px_rgba(68,64,60,0.08)]">
+                <div className="grid lg:grid-cols-[205px_1fr]">
+                  <div className="flex flex-col items-center justify-center border-b border-teal-950/30 bg-[#163733] p-5 lg:border-b-0 lg:border-r">
+                    <div
+                      className="grid h-28 w-28 place-items-center rounded-full p-2"
+                      style={{ background: `conic-gradient(${scorecard.rating === 'Not Rated' ? '#a8a29e' : scorecard.totalScore >= 70 ? '#5eead4' : '#fbbf24'} ${scorecard.totalScore}%, #315650 0)` }}
+                    >
+                      <div className="grid h-full w-full place-items-center rounded-full bg-[#0d2521] text-center">
+                        <div><div className="text-3xl font-black leading-none text-white">{scorecard.totalScore}</div><div className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-teal-100/55">security score / 100</div></div>
+                      </div>
+                    </div>
+                    <span className={`mt-3 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${scorecard.rating === 'Not Rated' ? 'border-stone-500 bg-stone-700 text-stone-100' : scorecard.totalScore >= 70 ? 'border-teal-300 bg-teal-100 text-teal-900' : 'border-amber-300 bg-amber-100 text-amber-950'}`}>
+                      {scorecard.rating} posture
+                    </span>
                   </div>
-                  <span className={`inline-block px-2.5 py-0.5 rounded text-xs font-bold uppercase mt-1 ${
-                    scorecard.totalScore >= 70 ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-rose-950 text-rose-300 border border-rose-800'
-                  }`}>
-                    {scorecard.rating} Posture
-                  </span>
+
+                  <div className="p-5">
+                    <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-teal-700">Executive assessment brief</p>
+                        <h3 className="mt-1 text-xl font-bold text-stone-900">{scenario.name}</h3>
+                        <p className="mt-1 max-w-2xl text-xs leading-relaxed text-stone-500">{scenario.description}</p>
+                      </div>
+                      <span className="w-fit rounded-md border border-stone-300 bg-stone-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-stone-700">{scorecard.assessmentStatus}</span>
+                    </div>
+                    <div className="mt-5 grid gap-2 sm:grid-cols-4">
+                      <div className="rounded-lg border border-stone-200 bg-stone-50 p-3"><p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Evidence coverage</p><p className="mt-1 text-base font-bold text-stone-900">{scorecard.evidenceCoveragePercent}%</p><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-stone-200"><div className="h-full rounded-full bg-teal-600" style={{ width: `${scorecard.evidenceCoveragePercent}%` }} /></div></div>
+                      <div className="rounded-lg border border-stone-200 bg-stone-50 p-3"><p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Risk score</p><p className="mt-1 text-base font-bold text-stone-900">{snapshot.riskScore === null ? 'Not rated' : `${snapshot.riskScore}/100`}</p><p className="mt-1 text-[10px] text-stone-500">Observed penalties</p></div>
+                      <div className="rounded-lg border border-stone-200 bg-stone-50 p-3"><p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Crypto ML confidence</p><p className="mt-1 text-base font-bold text-stone-900">{snapshot.aiConfidenceScore === null ? 'Unavailable' : `${snapshot.aiConfidenceScore}%`}</p><p className="mt-1 text-[10px] text-stone-500">mean across {snapshot.aiConfidenceModels} crypto models</p></div>
+                      <div className="rounded-lg border border-stone-200 bg-stone-50 p-3"><p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Packet evidence</p><p className="mt-1 text-base font-bold text-stone-900">{scenario.packets.length} packets</p><p className="mt-1 text-[10px] text-stone-500">{scenario.sa.ikeVersion} · {scenario.sa.operationalMode}</p></div>
+                    </div>
+                  </div>
                 </div>
+              </section>
+
+              <div className="grid gap-3 lg:grid-cols-[1.35fr_0.65fr]">
+                <section className="rounded-xl border border-stone-200 bg-white p-4">
+                  <h4 className="flex items-center gap-2 text-sm font-bold text-stone-900"><ShieldCheck className="h-4 w-4 text-teal-600" /> Analyst reading</h4>
+                  <p className="mt-2 leading-relaxed text-stone-600">This IPsec capture is assessed for <strong className="text-stone-900">{scenario.organization}</strong>. The score reflects observed configuration evidence only: {scorecard.assessmentStatus !== 'COMPLETE' ? 'the assessment remains partial, so unobserved controls are neither presumed secure nor reported as vulnerabilities.' : scorecard.findings.some((finding) => finding.severity === 'Critical' || finding.severity === 'High') ? 'high-risk configuration findings require review before this deployment is trusted.' : 'no high-risk finding was identified in the assessed fields.'}</p>
+                </section>
+                <aside className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-amber-800">Traffic inference</p>
+                  <p className="mt-2 text-sm font-bold text-stone-900">{prediction.predictedClass} <span className="text-xs font-medium text-amber-800">· {snapshot.trafficMatchScore === null ? 'insufficient evidence' : `${snapshot.trafficMatchScore}% relative pattern match`}</span></p>
+                  <p className="mt-2 leading-relaxed text-amber-950/75">Estimated from packet size and timing. ESP payloads remain encrypted; this is not decrypted content or confirmed ground truth.</p>
+                </aside>
               </div>
 
-              {/* Plain-Language Story & Risk Summary */}
-              <div className="space-y-2">
-                <h4 className="text-sm font-bold text-white uppercase tracking-wider">
-                  Plain-Language Assessment &amp; Operational Impact
-                </h4>
-                <div className="p-4 rounded-lg bg-slate-950 border border-slate-800 space-y-2.5 leading-relaxed">
-                  <p>
-                    From an external network perspective, this tunnel displays an active and healthy connection. However, automated deep-inspection of the initial negotiation parameters reveals that{' '}
-                    {scorecard.totalScore < 60
-                      ? 'critical legacy choices leave this tunnel severely compromised.'
-                      : 'the cryptographic suite follows modern standards with robust defense.'}
-                  </p>
-                  <p>
-                    <strong>AI Inferred Workload:</strong> Even though raw payloads are unreadable due to ESP encapsulation, machine learning models determined with <strong>{prediction.confidenceScore}% confidence</strong> that this tunnel is transmitting <strong>{prediction.predictedClass}</strong> based on statistical framing characteristics.
-                  </p>
-                </div>
-              </div>
+              {renderAiNarrativePanel()}
 
               {/* Executive Recommendations List */}
               <div className="space-y-3">
-                <h4 className="text-sm font-bold text-white uppercase tracking-wider">
+                <h4 className="text-sm font-bold uppercase tracking-wider text-stone-900">
                   Prioritized Action Items
                 </h4>
                 <div className="space-y-2">
                   {scorecard.findings
-                    .filter((f) => f.severity !== 'Pass')
+                    .filter((f) => f.penalty > 0)
                     .map((f, i) => (
-                      <div key={i} className="p-3 rounded-lg bg-slate-800/40 border border-slate-800 flex items-start gap-3">
-                        <span className="w-5 h-5 rounded-full bg-rose-950 text-rose-400 border border-rose-800 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">
+                      <div key={i} className="flex items-start gap-3 rounded-lg border border-stone-200 bg-white p-3 shadow-[0_2px_8px_rgba(68,64,60,0.04)]">
+                        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-amber-300 bg-amber-100 text-[10px] font-bold text-amber-900">
                           {i + 1}
                         </span>
                         <div>
-                          <div className="font-bold text-white">{f.threatName}</div>
-                          <div className="text-slate-400 mt-0.5">{f.remediation}</div>
+                          <div className="font-bold text-stone-900">{f.threatName}</div>
+                          <div className="mt-0.5 text-stone-500">{f.remediation}</div>
                         </div>
                       </div>
                     ))}
-                  {scorecard.findings.filter((f) => f.severity !== 'Pass').length === 0 && (
-                    <div className="text-emerald-400 font-semibold p-3 bg-emerald-950/30 rounded-lg border border-emerald-900">
-                      ✓ No immediate executive interventions required. Deployment meets defense standard requirements.
+                  {snapshot.threats.length === 0 && (
+                    <div className="rounded-lg border border-teal-200 bg-teal-50 p-3 font-semibold text-teal-800">
+                      No observed configuration risk was scored. Review evidence gaps before making a compliance conclusion.
+                    </div>
+                  )}
+                  {snapshot.evidenceGaps.length > 0 && (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-900">
+                      {snapshot.evidenceGaps.length} control{snapshot.evidenceGaps.length === 1 ? '' : 's'} need more capture or gateway evidence. These are not confirmed vulnerabilities.
                     </div>
                   )}
                 </div>
@@ -227,72 +447,82 @@ ${scorecard.findings
             </div>
           ) : (
             /* Technical Report View */
-            <div className="space-y-6 font-mono text-xs">
+            <div className="space-y-6 text-xs text-stone-700">
               
-              <div className="p-4 rounded-lg bg-slate-950 border border-slate-800 space-y-2">
-                <div className="text-emerald-400 font-bold">[PROTOCOL AUDIT RECORD]</div>
-                <div>Target Gateway: {scenario.packets[0]?.destIp || '10.0.0.1'}</div>
+              <div className="space-y-2 rounded-xl border border-teal-900 bg-[#163733] p-4 text-teal-50 shadow-[0_8px_18px_rgba(19,78,74,0.16)]">
+                <div className="font-bold text-teal-300">[PROTOCOL AUDIT RECORD]</div>
+                <div>Target Gateway: {scenario.packets[0]?.destIp || 'Not observed'}</div>
                 <div>Initiator SPI: {scenario.sa.initiatorSpi}</div>
                 <div>Responder SPI: {scenario.sa.responderSpi}</div>
                 <div>Key Lifetime Window: {scenario.sa.keyLifetimeSeconds === null ? 'Not observed' : `${scenario.sa.keyLifetimeSeconds}s`}</div>
                 <div>Replay Protection: {scenario.sa.replayProtection === null ? 'Not observed' : scenario.sa.replayProtection ? `ENABLED${scenario.sa.replayWindowSize ? ` (Window ${scenario.sa.replayWindowSize})` : ''}` : 'DISABLED'}</div>
               </div>
 
+              <div className="grid gap-2 sm:grid-cols-3">
+                <div className="rounded-lg border border-stone-200 bg-white p-3"><div className="text-stone-500">Security / observed risk</div><div className="mt-1 font-bold text-stone-900">{scorecard.totalScore}/100 · {snapshot.riskScore === null ? 'Not rated' : `${snapshot.riskScore}/100`}</div><div className="text-stone-500">Evidence coverage {scorecard.evidenceCoveragePercent}%</div></div>
+                <div className="rounded-lg border border-stone-200 bg-white p-3"><div className="text-stone-500">Crypto ML confidence</div><div className="mt-1 font-bold text-stone-900">{snapshot.aiConfidenceScore === null ? 'Unavailable' : `${snapshot.aiConfidenceScore}%`}</div><div className="text-stone-500">Mean predicted-class probability across {snapshot.aiConfidenceModels} trained crypto models</div></div>
+                <div className="rounded-lg border border-stone-200 bg-white p-3"><div className="text-stone-500">Metadata inference</div><div className="mt-1 font-bold text-stone-900">{prediction.predictedClass}</div><div className="text-stone-500">{snapshot.trafficMatchScore === null ? 'Insufficient ESP evidence' : `${snapshot.trafficMatchScore}% relative pattern match`}</div></div>
+              </div>
+
+              {renderAiNarrativePanel()}
+
               {/* Technical Specifications */}
               <div>
-                <h4 className="font-bold text-white mb-2 font-sans">
+                <h4 className="mb-2 font-sans font-bold text-stone-900">
                   Negotiated Security Association Transforms
                 </h4>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  <div className="p-2.5 rounded bg-slate-800/60 border border-slate-700">
-                    <div className="text-[10px] text-slate-400">IKE Version</div>
-                    <div className="font-bold text-white mt-1">{scenario.sa.ikeVersion}</div>
+                  <div className="rounded-lg border border-stone-200 bg-white p-2.5">
+                    <div className="text-[10px] text-stone-500">IKE Version</div>
+                    <div className="mt-1 font-bold text-stone-900">{scenario.sa.ikeVersion}</div>
                   </div>
-                  <div className="p-2.5 rounded bg-slate-800/60 border border-slate-700">
-                    <div className="text-[10px] text-slate-400">Cipher</div>
-                    <div className="font-bold text-white mt-1 truncate">{scenario.sa.encryptionAlgorithm}</div>
+                  <div className="rounded-lg border border-stone-200 bg-white p-2.5">
+                    <div className="text-[10px] text-stone-500">Cipher</div>
+                    <div className="mt-1 truncate font-bold text-stone-900">{scenario.sa.encryptionAlgorithm}</div>
                   </div>
-                  <div className="p-2.5 rounded bg-slate-800/60 border border-slate-700">
-                    <div className="text-[10px] text-slate-400">DH Group</div>
-                    <div className="font-bold text-white mt-1">{scenario.sa.dhGroup}</div>
+                  <div className="rounded-lg border border-stone-200 bg-white p-2.5">
+                    <div className="text-[10px] text-stone-500">DH Group</div>
+                    <div className="mt-1 font-bold text-stone-900">{scenario.sa.dhGroup}</div>
                   </div>
-                  <div className="p-2.5 rounded bg-slate-800/60 border border-slate-700">
-                    <div className="text-[10px] text-slate-400">PFS Status</div>
-                    <div className={`font-bold mt-1 ${scenario.sa.pfsEnabled === null ? 'text-slate-400' : scenario.sa.pfsEnabled ? 'text-emerald-400' : 'text-rose-400'}`}>
-                      {scenario.sa.pfsEnabled === null ? 'NOT OBSERVED' : scenario.sa.pfsEnabled ? 'ENABLED' : 'DISABLED'}
+                  <div className="rounded-lg border border-stone-200 bg-white p-2.5">
+                    <div className="text-[10px] text-stone-500">PFS Status</div>
+                    <div className="mt-1 font-bold text-stone-900">
+                      {scenario.sa.pfsEnabled === null ? 'Not observed' : scenario.sa.pfsEnabled ? 'Enabled' : 'Disabled'}
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Technical CVE Table */}
+              {/* Raw Findings Data Table */}
               <div>
-                <h4 className="font-bold text-white mb-2 font-sans">
-                  Vulnerability Dissection &amp; RFC Compliance Failures
-                </h4>
-                <div className="border border-slate-800 rounded-lg overflow-hidden font-sans">
+                <h4 className="mb-2 font-sans font-bold text-stone-900">Threat Matrix and Evidence Gaps</h4>
+                <div className="overflow-x-auto rounded-lg border border-stone-200 bg-white">
                   <table className="w-full text-left">
-                    <thead className="bg-slate-800 text-[11px] text-slate-400">
+                    <thead className="border-b border-stone-200 bg-stone-100 text-[10px] uppercase text-stone-500">
                       <tr>
                         <th className="p-2.5">Parameter</th>
-                        <th className="p-2.5">Detected</th>
+                        <th className="p-2.5">Detected Value</th>
                         <th className="p-2.5">Severity</th>
-                        <th className="p-2.5">Vulnerability Reference</th>
+                        <th className="p-2.5">Risk / evidence</th>
+                        <th className="p-2.5">Score impact</th>
+                        <th className="p-2.5">Remediation</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800">
-                      {scorecard.findings.map((f) => (
-                        <tr key={f.id} className="text-xs">
-                          <td className="p-2.5 text-white font-medium">{f.parameter}</td>
-                          <td className="p-2.5 font-mono text-slate-300">{f.detectedValue}</td>
+                    <tbody className="divide-y divide-stone-100">
+                      {scorecard.findings.map((f, i) => (
+                        <tr key={i} className="hover:bg-amber-50/50">
+                          <td className="p-2.5 font-bold text-stone-800">{f.parameter}</td>
+                          <td className="p-2.5 text-stone-700">{f.detectedValue}</td>
                           <td className="p-2.5">
-                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                              f.severity === 'Critical' ? 'bg-rose-950 text-rose-300' : (f.severity === 'Pass' ? 'bg-emerald-950 text-emerald-300' : 'bg-amber-950 text-amber-300')
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                              f.severity === 'Critical' ? 'bg-rose-100 text-rose-800' : (f.severity === 'Pass' ? 'bg-teal-100 text-teal-800' : 'bg-amber-100 text-amber-900')
                             }`}>
                               {f.severity}
                             </span>
                           </td>
-                          <td className="p-2.5 text-slate-400">{f.threatName}</td>
+                          <td className="p-2.5 text-stone-500">{f.threatName}</td>
+                          <td className="p-2.5 text-stone-700">{f.penalty > 0 ? `-${f.penalty}` : '0'}</td>
+                          <td className="p-2.5 text-stone-700">{f.remediation}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -306,25 +536,44 @@ ${scorecard.findings
         </div>
 
         {/* Modal Footer Controls */}
-        <div className="p-4 border-t border-slate-800 bg-slate-900/90 flex flex-wrap items-center justify-between gap-3">
-          <div className="text-xs text-slate-400">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-stone-200 bg-white p-4">
+          <div className="text-xs text-stone-500">
             Exportable report format conforming to NTRO Deliverable E.
           </div>
 
           <div className="flex items-center gap-2">
+            <button onClick={handleGenerateAiNarrative} disabled={aiLoading} className="inline-flex items-center gap-1.5 rounded-lg bg-violet-700 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-violet-800 disabled:opacity-60 cursor-pointer"><Sparkles className="w-3.5 h-3.5" /><span>{aiLoading ? 'Generating AI…' : 'AI Narrative'}</span></button>
+            <button
+              id="btn-download-json"
+              onClick={handleDownloadJson}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-xs font-semibold text-stone-700 transition-colors hover:bg-stone-100 cursor-pointer"
+            >
+              <FileJson className="w-3.5 h-3.5 text-amber-600" />
+              <span>Export JSON</span>
+            </button>
+
+            <button
+              id="btn-download-pdf"
+              onClick={handleDownloadPdf}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-xs font-semibold text-stone-700 transition-colors hover:bg-stone-100 cursor-pointer"
+            >
+              <FileDown className="w-3.5 h-3.5 text-teal-600" />
+              <span>Download PDF</span>
+            </button>
+
             <button
               id="btn-copy-report"
               onClick={handleCopyMarkdown}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-xs font-semibold text-stone-700 transition-colors hover:bg-stone-100 cursor-pointer"
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              {copied ? <Check className="w-3.5 h-3.5 text-teal-600" /> : <Copy className="w-3.5 h-3.5" />}
               <span>{copied ? 'Copied Markdown!' : 'Copy Markdown'}</span>
             </button>
 
             <button
               id="btn-download-report"
               onClick={handleDownloadMarkdown}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-500 text-white shadow-sm transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-teal-700 px-3 py-1.5 text-xs font-semibold text-white shadow-sm shadow-teal-900/20 transition-colors hover:bg-teal-800 cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Download .MD Report</span>

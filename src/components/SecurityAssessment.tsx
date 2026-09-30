@@ -1,202 +1,253 @@
 import React from 'react';
-import { ShieldAlert, AlertTriangle, CheckCircle2, XCircle, Wrench, ExternalLink } from 'lucide-react';
-import { SecurityScorecard, IkeSecurityAssociation } from '../types';
+import { AlertTriangle, CheckCircle2, Radar, ShieldAlert, ShieldCheck, Wrench } from 'lucide-react';
+import {
+  GatewayCorrelationResult,
+  GatewayTelemetrySummary,
+  IkeSecurityAssociation,
+  SecurityFinding,
+  SecurityScorecard,
+} from '../types';
+import { CombinedAnalysisPanel } from './CombinedAnalysisPanel';
 
 interface SecurityAssessmentProps {
   scorecard: SecurityScorecard;
   sa: IkeSecurityAssociation;
+  gatewayTelemetry?: GatewayTelemetrySummary;
+  correlation?: GatewayCorrelationResult;
 }
+
+const severityBadge = (severity: string) => {
+  const s = severity.toLowerCase();
+  if (s === 'critical') return 'bg-rose-50 text-rose-700 border-rose-200';
+  if (s === 'high') return 'bg-orange-50 text-orange-700 border-orange-200';
+  if (s === 'medium') return 'bg-amber-50 text-amber-700 border-amber-200';
+  if (s === 'low') return 'bg-slate-100 text-slate-700 border-slate-200';
+  if (s === 'pass') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+  return 'bg-blue-50 text-blue-700 border-blue-200';
+};
+
+const evidenceBadge = (label: string, tone: 'observed' | 'ml' | 'gap' | 'pass') => {
+  const cls = tone === 'observed'
+    ? 'border-blue-200 bg-blue-50 text-blue-700'
+    : tone === 'ml'
+    ? 'border-purple-200 bg-purple-50 text-purple-700'
+    : tone === 'pass'
+    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+    : 'border-amber-200 bg-amber-50 text-amber-700';
+  return <span className={`rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${cls}`}>{label}</span>;
+};
+
+const DetailRow = ({ label, value, reference, tone = 'observed' }: { label: string; value: React.ReactNode; reference: string; tone?: 'observed' | 'gap' | 'pass' }) => (
+  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-1 border-b border-slate-100 px-4 py-3 last:border-b-0 md:grid-cols-[220px_minmax(0,1fr)]">
+    <div className="font-semibold text-slate-800">{label}</div>
+    <div className="min-w-0 break-words text-right text-slate-900 md:text-left">{value}</div>
+    <div className="col-span-2 text-[11px] text-slate-500">{tone === 'gap' ? evidenceBadge('Needs evidence', 'gap') : evidenceBadge('PCAP observed', tone)} <span className="ml-2">{reference}</span></div>
+  </div>
+);
+
+const FindingCard = ({ finding }: { finding: SecurityFinding }) => (
+  <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-xs">
+    <div className="flex flex-wrap items-center gap-2">
+      <span className={`rounded border px-2 py-0.5 text-[10px] font-bold uppercase ${severityBadge(finding.severity)}`}>{finding.severity}</span>
+      <h4 className="text-sm font-bold text-slate-900">{finding.threatName}</h4>
+      <span className="text-[11px] text-slate-400">({finding.parameter})</span>
+    </div>
+    <p className="mt-2 text-sm leading-6 text-slate-600">{finding.description}</p>
+    <div className="mt-3 flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+      <Wrench className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
+      <span><strong className="text-slate-900">Fix:</strong> {finding.remediation}</span>
+    </div>
+  </article>
+);
 
 export const SecurityAssessment: React.FC<SecurityAssessmentProps> = ({
   scorecard,
   sa,
+  gatewayTelemetry,
+  correlation,
 }) => {
-  const getSeverityBadge = (severity: string) => {
-    switch (severity) {
-      case 'Critical':
-        return 'bg-rose-950 text-rose-300 border-rose-800';
-      case 'High':
-        return 'bg-orange-950 text-orange-300 border-orange-800';
-      case 'Medium':
-        return 'bg-amber-950 text-amber-300 border-amber-800';
-      case 'Low':
-        return 'bg-blue-950 text-blue-300 border-blue-800';
-      default:
-        return 'bg-emerald-950 text-emerald-300 border-emerald-800';
-    }
-  };
-
-  const getSeverityIcon = (severity: string) => {
-    switch (severity) {
-      case 'Critical':
-      case 'High':
-        return <XCircle className="w-4 h-4 text-rose-400 shrink-0" />;
-      case 'Medium':
-      case 'Low':
-        return <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />;
-      default:
-        return <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />;
-    }
-  };
+  const observations = sa.observations;
+  const riskFindings = scorecard.findings.filter((finding) => finding.penalty > 0);
+  const evidenceGaps = scorecard.findings.filter((finding) => finding.severity !== 'Pass' && finding.penalty === 0);
+  const observedPfs = sa.pfsEnabled === null ? 'Not determined from capture' : sa.pfsEnabled ? 'Enabled' : 'Disabled';
 
   return (
-    <div className="space-y-5">
-      
-      {/* 1. Cryptographic Compliance & Security Association Audit */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-5 shadow-sm">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-          <div>
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <ShieldAlert className="w-4 h-4 text-blue-400" />
-              <span>Cryptographic Parameter Audit &amp; Compliance Matrix</span>
-            </h3>
-            <p className="text-xs text-slate-400">
-              Evaluated against NIST SP 800-77 Rev. 1, RFC 8221, and NSA Commercial National Security Algorithm (CNSA)
-            </p>
+    <div className="space-y-6">
+      {gatewayTelemetry && (
+        <CombinedAnalysisPanel
+          sa={sa}
+          gatewayTelemetry={gatewayTelemetry}
+          correlation={correlation}
+        />
+      )}
+
+      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
+        <div className="grid gap-0 lg:grid-cols-[260px_minmax(0,1fr)]">
+          <div className="border-b border-slate-200 bg-slate-950 p-5 text-white lg:border-b-0 lg:border-r">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-blue-200">
+              <ShieldCheck className="h-4 w-4" />
+              Security posture
+            </div>
+            <div className="mt-5 flex items-end gap-2">
+              <span className="text-5xl font-black leading-none">{scorecard.totalScore}</span>
+              <span className="pb-1 text-sm text-slate-300">/ 100</span>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span className="rounded-md border border-slate-600 bg-slate-800 px-2 py-1 text-xs font-semibold">{scorecard.rating}</span>
+              <span className="rounded-md border border-slate-600 bg-slate-800 px-2 py-1 text-xs font-semibold">{scorecard.assessmentStatus}</span>
+            </div>
           </div>
 
-          <div className="text-xs font-mono font-bold text-slate-300">
-            Total Penalty: <span className="text-rose-400">-{100 - scorecard.totalScore} pts</span>
+          <div className="grid gap-3 p-5 md:grid-cols-3">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div className="text-xs font-semibold text-slate-500">Known-risk penalties</div>
+              <div className="mt-1 text-2xl font-bold text-slate-900">-{scorecard.riskPenalty}</div>
+              <div className="mt-1 text-xs text-slate-500">Only confirmed findings reduce this score.</div>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div className="text-xs font-semibold text-slate-500">Evidence coverage</div>
+              <div className="mt-1 text-2xl font-bold text-slate-900">{scorecard.evidenceCoveragePercent}%</div>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200"><div className="h-full rounded-full bg-blue-600" style={{ width: `${scorecard.evidenceCoveragePercent}%` }} /></div>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div className="text-xs font-semibold text-slate-500">Action status</div>
+              <div className="mt-1 text-2xl font-bold text-slate-900">{riskFindings.length}</div>
+              <div className="mt-1 text-xs text-slate-500">scored risk{riskFindings.length === 1 ? '' : 's'} · {evidenceGaps.length} evidence gap{evidenceGaps.length === 1 ? '' : 's'}</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
+        <div className="rounded-xl border border-slate-200 bg-white shadow-xs">
+          <div className="border-b border-slate-200 p-4">
+            <h3 className="text-sm font-bold text-slate-900">Packet-observed negotiation details</h3>
+            <p className="mt-1 text-xs text-slate-500">Fields decoded from visible IKE/IP headers. Unknown values are evidence gaps, not safe defaults.</p>
+          </div>
+          <div className="text-sm">
+            <DetailRow label="IKE version" value={sa.ikeVersion} reference="RFC 7296" tone={sa.ikeVersion === 'Not observed in capture' ? 'gap' : 'observed'} />
+            <DetailRow label="Operating mode" value={`${sa.operationalMode} (${sa.ipVersion})`} reference="RFC 4301" tone={sa.operationalMode === 'Not determined from capture' ? 'gap' : 'observed'} />
+            <DetailRow label="Encryption" value={`${sa.encryptionAlgorithm}${sa.encryptionKeyBits > 0 ? ` (${sa.encryptionKeyBits}-bit)` : ''}`} reference="NIST SP 800-77" tone={sa.encryptionAlgorithm === 'Not observed in capture' ? 'gap' : 'observed'} />
+            <DetailRow label="Integrity" value={sa.authIntegrityAlgorithm} reference="RFC 8221" tone={sa.authIntegrityAlgorithm === 'Not observed in capture' ? 'gap' : 'observed'} />
+            <DetailRow label="DH group" value={`${sa.dhGroup}${sa.dhBits > 0 ? ` (${sa.dhBits}-bit)` : ''}`} reference="NIST SP 800-56A" tone={sa.dhGroup === 'Not observed in capture' ? 'gap' : 'observed'} />
+            <DetailRow label="PFS" value={observedPfs} reference="Child-SA evidence required" tone={sa.pfsEnabled === null ? 'gap' : 'observed'} />
+            <DetailRow label="Replay protection" value={sa.replayProtection === null ? 'Not determined' : sa.replayProtection ? `Enabled${sa.replayWindowSize ? `, window ${sa.replayWindowSize}` : ''}` : 'Disabled'} reference="RFC 4303" tone={sa.replayProtection === null ? 'gap' : 'observed'} />
+            <DetailRow label="SA lifetime" value={sa.keyLifetimeSeconds === null ? 'Not observed' : `${sa.keyLifetimeSeconds / 3600} hours (${sa.keyLifetimeSeconds}s)`} reference="8-24 hours recommended" tone={sa.keyLifetimeSeconds === null ? 'gap' : 'observed'} />
           </div>
         </div>
 
-        {/* Findings Table */}
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-300">
-            <thead className="bg-slate-800/60 text-[11px] uppercase tracking-wider text-slate-400 font-semibold border-b border-slate-700/60">
+        {observations && (
+          <aside className="rounded-xl border border-slate-200 bg-white shadow-xs">
+            <div className="border-b border-slate-200 p-4">
+              <div className="flex items-center gap-2">
+                <Radar className="h-4 w-4 text-blue-600" />
+                <h3 className="text-sm font-bold text-slate-900">Wire-visible frame observations</h3>
+              </div>
+              <p className="mt-1 text-xs text-slate-500">Counts and packet metadata visible without decrypting ESP.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 p-4">
+              {[
+                ['Total', observations.totalPackets],
+                ['IKE', observations.ikePackets],
+                ['ESP', observations.espPackets],
+                ['AH', observations.ahPackets],
+                ['UDP', observations.udpPackets],
+                ['NAT-T', observations.natTraversal],
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  <div className="text-[11px] font-semibold text-slate-500">{label}</div>
+                  <div className="mt-1 break-words text-base font-bold text-slate-900">{value}</div>
+                </div>
+              ))}
+            </div>
+            <div className="space-y-2 border-t border-slate-200 p-4 text-xs leading-5 text-slate-600">
+              <div><strong className="text-slate-900">IKE exchanges:</strong> {observations.ikeExchanges.join(', ') || 'None'}</div>
+              <div><strong className="text-slate-900">Payloads:</strong> {observations.ikePayloads.join(', ') || 'None'}</div>
+              <div><strong className="text-slate-900">ESP SPIs:</strong> {observations.espSpis.join(', ') || 'None'}</div>
+              <div><strong className="text-slate-900">ESP sequence:</strong> {observations.espSequenceRange}</div>
+              {observations.captureNotes.map((note, index) => (
+                <div key={index} className="rounded-md border border-amber-200 bg-amber-50 p-2 text-amber-800">{note}</div>
+              ))}
+            </div>
+          </aside>
+        )}
+      </section>
+
+      <section className="rounded-xl border border-slate-200 bg-white shadow-xs">
+        <div className="flex flex-col gap-2 border-b border-slate-200 p-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900">Compliance matrix</h3>
+            <p className="mt-1 text-xs text-slate-500">Observed controls, expected baseline, and score impact.</p>
+          </div>
+          <div className="text-xs text-slate-500">Evidence coverage: <strong className="text-slate-900">{scorecard.evidenceCoveragePercent}%</strong></div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs table-compact">
+            <thead>
               <tr>
-                <th className="py-2.5 px-3">Security Parameter</th>
-                <th className="py-2.5 px-3">Detected Configuration</th>
-                <th className="py-2.5 px-3">Standard Recommendation</th>
-                <th className="py-2.5 px-3">Severity</th>
-                <th className="py-2.5 px-3 text-right">Score Impact</th>
+                <th>Control</th>
+                <th>Current value</th>
+                <th>Expected baseline</th>
+                <th>Result</th>
+                <th className="text-right">Impact</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
-              {scorecard.findings.map((f) => (
-                <tr key={f.id} className="hover:bg-slate-800/30 transition-colors">
-                  <td className="py-3 px-3 font-medium text-white flex items-center gap-2">
-                    {getSeverityIcon(f.severity)}
-                    <span>{f.parameter}</span>
-                  </td>
-                  <td className="py-3 px-3 font-mono font-semibold text-slate-200">
-                    {f.detectedValue}
-                  </td>
-                  <td className="py-3 px-3 text-slate-400 font-medium">
-                    {f.recommendedValue}
-                  </td>
-                  <td className="py-3 px-3">
-                    <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-bold border ${getSeverityBadge(f.severity)}`}>
-                      {f.severity}
-                    </span>
-                  </td>
-                  <td className="py-3 px-3 text-right font-mono font-bold">
-                    {f.penalty > 0 ? (
-                      <span className="text-rose-400">-{f.penalty}</span>
-                    ) : (
-                      <span className="text-emerald-400">0 (Safe)</span>
-                    )}
-                  </td>
+            <tbody>
+              {scorecard.findings.map((finding) => (
+                <tr key={finding.id}>
+                  <td className="font-semibold text-slate-900">{finding.parameter}</td>
+                  <td className="max-w-[280px] whitespace-normal break-words text-slate-700">{finding.detectedValue}</td>
+                  <td className="max-w-[280px] whitespace-normal break-words text-slate-600">{finding.recommendedValue}</td>
+                  <td><span className={`rounded border px-2 py-0.5 text-[11px] font-semibold ${severityBadge(finding.severity)}`}>{finding.severity}</span></td>
+                  <td className="text-right font-semibold">{finding.penalty > 0 ? <span className="text-rose-600">-{finding.penalty}</span> : <span className="text-slate-400">0</span>}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
 
-      {/* 2. Threat Matrix & CVE Mapping */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-5 shadow-sm">
-        <div className="pb-3 border-b border-slate-800">
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-400" />
-            <span>Identified Threat Vectors &amp; Attack Exploitation Analysis</span>
-          </h3>
-          <p className="text-xs text-slate-400">
-            Real-world security implications of detected misconfigurations
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-          {scorecard.findings
-            .filter((f) => f.severity !== 'Pass')
-            .map((f) => (
-              <div key={f.id} className="p-3.5 rounded-lg bg-slate-800/50 border border-slate-700/70 text-xs">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="font-bold text-white flex items-center gap-1.5">
-                    <span className="text-rose-400">⚠</span>
-                    <span>{f.threatName}</span>
-                  </div>
-                  {f.cveReference && (
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-rose-950 text-rose-300 border border-rose-800 shrink-0">
-                      {f.cveReference}
-                    </span>
-                  )}
-                </div>
-
-                <p className="text-slate-300 mt-2 leading-relaxed">
-                  {f.description}
-                </p>
-
-                <div className="mt-3 pt-2.5 border-t border-slate-700/60 flex items-start gap-1.5 text-emerald-300">
-                  <Wrench className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                  <div>
-                    <strong className="text-emerald-400 font-semibold">Remediation:</strong>{' '}
-                    <span className="text-slate-300">{f.remediation}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-
-          {scorecard.findings.filter((f) => f.severity !== 'Pass').length === 0 && (
-            <div className="col-span-2 p-6 rounded-lg bg-emerald-950/30 border border-emerald-800/60 text-center">
-              <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
-              <div className="text-sm font-bold text-white">Zero Critical Vulnerabilities Detected</div>
-              <p className="text-xs text-emerald-300/80 mt-1 max-w-lg mx-auto">
-                This tunnel satisfies all baseline requirements for NSA CNSA and NIST SP 800-77 Rev 1 cryptographic security.
-              </p>
+      <section className="grid gap-4 lg:grid-cols-2">
+        <div className="rounded-xl border border-slate-200 bg-white shadow-xs">
+          <div className="border-b border-slate-200 p-4">
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="h-4 w-4 text-amber-600" />
+              <h3 className="text-sm font-bold text-slate-900">Threats that affect score</h3>
             </div>
-          )}
-        </div>
-      </div>
-
-      {/* 3. Recommended Hardening Snippet (strongSwan / IPsec) */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-5 shadow-sm">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-          <div className="flex items-center gap-2">
-            <Wrench className="w-4 h-4 text-emerald-400" />
-            <h3 className="text-sm font-bold text-white">
-              Automated Configuration Fix (strongSwan swanctl.conf)
-            </h3>
           </div>
-          <span className="text-xs text-slate-400">RFC 8221 &amp; CNSA Hardened</span>
+          <div className="space-y-3 p-4">
+            {riskFindings.length > 0 ? riskFindings.map((finding) => <FindingCard key={finding.id} finding={finding} />) : (
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-700">
+                <CheckCircle2 className="mr-2 inline h-4 w-4" /> No observed configuration risk was scored.
+              </div>
+            )}
+          </div>
         </div>
 
-        <pre className="mt-3.5 p-3.5 bg-slate-950 rounded-lg text-xs font-mono text-emerald-400 overflow-x-auto border border-slate-800">
-{`connections {
-  hardened-vpn {
-    version = 2
-    local_addrs  = ${sa.ipVersion === 'IPv6' ? '2001:db8:100::1' : '198.51.100.2'}
-    remote_addrs = ${sa.ipVersion === 'IPv6' ? '2001:db8:200::2' : '203.0.113.50'}
-    
-    # Phase 1: Hardened IKE SA (AES-256-GCM + SHA384 + DH Group 19 ECDH)
-    proposals = aes256gcm16-sha384-ecp256, aes256gcm16-sha384-modp2048
-    rekey_time = 3600s
-    
-    children {
-      child-sa {
-        # Phase 2: Hardened ESP Child SA with PFS (Perfect Forward Secrecy)
-        esp_proposals = aes256gcm16-ecp256, aes256gcm16-modp2048
-        mode = tunnel
-        rekey_time = 1800s
-        esn = yes  # Extended Sequence Numbers for replay protection
-        dpd_action = restart
-      }
-    }
-  }
-}`}
-        </pre>
-      </div>
-
+        <div className="rounded-xl border border-slate-200 bg-white shadow-xs">
+          <div className="border-b border-slate-200 p-4">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <h3 className="text-sm font-bold text-slate-900">Evidence gaps</h3>
+            </div>
+            <p className="mt-1 text-xs text-slate-500">These are unknown controls. They are not counted as confirmed vulnerabilities.</p>
+          </div>
+          <div className="space-y-3 p-4">
+            {evidenceGaps.length > 0 ? evidenceGaps.map((finding) => (
+              <div key={finding.id} className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  {evidenceBadge('needs evidence', 'gap')}
+                  <h4 className="text-sm font-bold text-slate-900">{finding.parameter}</h4>
+                </div>
+                <p className="mt-2 text-sm leading-6 text-slate-700">{finding.description}</p>
+                <p className="mt-2 text-sm leading-6 text-amber-900"><strong>Next evidence:</strong> {finding.remediation}</p>
+              </div>
+            )) : (
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-700">No current evidence gaps.</div>
+            )}
+          </div>
+        </div>
+      </section>
     </div>
   );
 };

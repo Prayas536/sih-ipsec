@@ -1,0 +1,66 @@
+C:\Users\User\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\scapy\layers\tls\crypto\groups.py:25: CryptographyDeprecationWarning: Diffie-Hellman over finite fields (FFDH) is deprecated and support will be removed in a future release. Use a more modern key exchange algorithm.
+  from cryptography.hazmat.primitives.asymmetric.dh import DHParameterNumbers
+{
+  "inventory_files": 1202,
+  "source_files": 109,
+  "captures": 157,
+  "feature_json": 157,
+  "experiments_defined": 44,
+  "repetitions": 5,
+  "metadata_records": 211,
+  "metadata_status": {
+    "SUCCESS": 157,
+    "FAILED": 54
+  },
+  "dataset_rows": 157,
+  "train_rows": 126,
+  "test_rows": 31,
+  "traffic": {
+    "ICMP": 113,
+    "TCP": 44
+  },
+  "captured_scenarios": 33,
+  "crypto_combinations": 24,
+  "metadata_modes": {
+    "TUNNEL": 157
+  },
+  "metadata_valid_success": 157,
+  "train_test_exact_feature_overlap": 0,
+  "model_metadata": {
+    "features": [
+      "packet_count",
+      "total_bytes",
+      "avg_packet_size",
+      "min_packet_size",
+      "max_packet_size",
+      "capture_duration_seconds",
+      "udp_packet_count",
+      "udp_500_count",
+      "ike_packet_count",
+      "esp_packet_count",
+      "create_child_sa_count",
+      "informational_count",
+      "ike_request_count",
+      "ike_response_count",
+      "ike_bytes",
+      "ike_avg_packet_size",
+      "esp_bytes",
+      "esp_avg_packet_size"
+    ],
+    "targets": [
+      "encryption",
+      "hash",
+      "dh_group",
+      "pfs_group"
+    ],
+    "context_columns": [
+      "repetition",
+      "traffic"
+    ],
+    "n_estimators": 300,
+    "random_state": 42,
+    "training_samples": 126
+  }
+}
+EVALUATION {'encryption': (19, 31, 0.6129032258064516), 'hash': (31, 31, 1.0), 'dh_group': (29, 31, 0.9354838709677419), 'pfs_group': (30, 31, 0.967741935483871)}
+SAMPLE {'encryption': {'prediction': 'AES128', 'probabilities': {'AES128': 0.73, 'AES256': 0.27}, 'confidence': 0.73}, 'hash': {'prediction': 'SHA256', 'probabilities': {'SHA256': 1.0, 'SHA384': 0.0}, 'confidence': 1.0}, 'dh_group': {'prediction': 'DH14', 'probabilities': {'DH14': 1.0, 'DH15': 0.0}, 'confidence': 1.0}, 'pfs_group': {'prediction': 'NOPFS', 'probabilities': {'NOPFS': 1.0, 'PFS14': 0.0, 'PFS15': 0.0}, 'confidence': 1.0}} None

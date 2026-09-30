@@ -1,0 +1,125 @@
+{
+  "scorecard": {
+    "totalScore": 54,
+    "riskPenalty": 10,
+    "evidenceCoveragePercent": 60,
+    "assessmentStatus": "PARTIAL",
+    "rating": "Weak",
+    "findings": [
+      {
+        "id": "F-IKE-PASS",
+        "parameter": "Key Exchange Protocol",
+        "detectedValue": "IKEv2 (Modern)",
+        "recommendedValue": "IKEv2",
+        "severity": "Pass",
+        "penalty": 0,
+        "threatName": "Modern Protocol Standard",
+        "description": "IKEv2 provides streamlined 4-message exchange, built-in DoS cookie protection, and robust MOBIKE extension support.",
+        "remediation": "Maintain current IKEv2 deployment."
+      },
+      {
+        "id": "F-ENC-02",
+        "parameter": "Symmetric Encryption Cipher",
+        "detectedValue": "AES-CBC",
+        "recommendedValue": "AES-256-GCM (AEAD)",
+        "severity": "Low",
+        "penalty": 10,
+        "threatName": "Cipher Block Chaining Mode Padding Attacks",
+        "description": "AES-CBC requires separate HMAC hashing and is vulnerable to padding oracle attacks if implementation timing varies.",
+        "remediation": "Prefer Authenticated Encryption with Associated Data (AEAD) modes like AES-GCM or ChaCha20-Poly1305."
+      },
+      {
+        "id": "F-DH-PASS",
+        "parameter": "Diffie-Hellman Key Exchange",
+        "detectedValue": "DH Group 14 (MODP 2048-bit) (2048-bit)",
+        "recommendedValue": "DH Group 14+ or ECDH 19/20",
+        "severity": "Pass",
+        "penalty": 0,
+        "threatName": "Cryptographically Secure DH Exchange",
+        "description": "Meets NIST SP 800-77 guidelines offering at least 112 to 128 bits of equivalent security strength against discrete logarithm attacks.",
+        "remediation": "Maintain current DH group."
+      },
+      {
+        "id": "F-PFS-UNKNOWN",
+        "parameter": "Perfect Forward Secrecy (PFS)",
+        "detectedValue": "Not observed in capture",
+        "recommendedValue": "Not assessed",
+        "severity": "Low",
+        "penalty": 0,
+        "threatName": "Child SA PFS Not Captured",
+        "description": "PFS cannot be determined from an IKE_SA_INIT exchange alone.",
+        "remediation": "Capture CREATE_CHILD_SA exchanges or provide an explicit Child SA configuration."
+      },
+      {
+        "id": "F-REPLAY-UNKNOWN",
+        "parameter": "Anti-Replay Window Protection",
+        "detectedValue": "Not observed in capture",
+        "recommendedValue": "Not assessed",
+        "severity": "Low",
+        "penalty": 0,
+        "threatName": "Replay Configuration Not Captured",
+        "description": "ESP sequence numbers do not reveal the configured replay window.",
+        "remediation": "Provide Child SA configuration or negotiated ESN evidence."
+      }
+    ],
+    "complianceNist": null,
+    "complianceRfc8221": true,
+    "complianceNsaCnsa": false,
+    "metadataLeakageRisk": "Unknown"
+  },
+  "workloadHeuristic": {
+    "predictedClass": "VoIP / Audio Call",
+    "confidenceScore": 60,
+    "probabilities": [
+      {
+        "category": "VoIP / Audio Call",
+        "probability": 60
+      },
+      {
+        "category": "Bulk Data Transfer (DB/FTP)",
+        "probability": 20
+      },
+      {
+        "category": "Video Streaming",
+        "probability": 12
+      },
+      {
+        "category": "Web Browsing / HTTPS",
+        "probability": 4
+      },
+      {
+        "category": "Telemetry / Heartbeat (ICMP)",
+        "probability": 4
+      }
+    ],
+    "primaryFeatures": [
+      {
+        "name": "Mean Packet Size",
+        "value": "170 bytes",
+        "impact": "Supporting",
+        "explanation": "Payload size footprint aligns with typical VoIP / Audio Call framing."
+      },
+      {
+        "name": "Packet Size Std Dev",
+        "value": "±0 bytes",
+        "impact": "Supporting",
+        "explanation": "High uniformity indicates fixed-rate codec audio transmission."
+      },
+      {
+        "name": "Inter-Arrival Time (IAT)",
+        "value": "2.6 ms",
+        "impact": "Neutral",
+        "explanation": "Rapid saturated transmissions typical of high-bandwidth transfer."
+      },
+      {
+        "name": "Ciphertext Entropy",
+        "value": "7.752 / 8.00 bits",
+        "impact": "Neutral",
+        "explanation": "Entropy describes byte distribution but cannot prove encryption or reveal the application inside ESP."
+      }
+    ],
+    "source": "DERIVED_FROM_OBSERVED_DATA",
+    "status": "INFERRED",
+    "evidence": "Rule-based traffic pattern match from aggregate ESP metadata; percentages are relative scores, not calibrated probabilities."
+  }
+}

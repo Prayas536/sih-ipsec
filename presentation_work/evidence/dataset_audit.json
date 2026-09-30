@@ -1,0 +1,62 @@
+{
+  "inventory_files": 1202,
+  "source_files": 109,
+  "captures": 157,
+  "feature_json": 157,
+  "experiments_defined": 44,
+  "repetitions": 5,
+  "metadata_records": 211,
+  "metadata_status": {
+    "SUCCESS": 157,
+    "FAILED": 54
+  },
+  "dataset_rows": 157,
+  "train_rows": 126,
+  "test_rows": 31,
+  "traffic": {
+    "ICMP": 113,
+    "TCP": 44
+  },
+  "captured_scenarios": 33,
+  "crypto_combinations": 24,
+  "metadata_modes": {
+    "TUNNEL": 157
+  },
+  "metadata_valid_success": 157,
+  "train_test_exact_feature_overlap": 0,
+  "model_metadata": {
+    "features": [
+      "packet_count",
+      "total_bytes",
+      "avg_packet_size",
+      "min_packet_size",
+      "max_packet_size",
+      "capture_duration_seconds",
+      "udp_packet_count",
+      "udp_500_count",
+      "ike_packet_count",
+      "esp_packet_count",
+      "create_child_sa_count",
+      "informational_count",
+      "ike_request_count",
+      "ike_response_count",
+      "ike_bytes",
+      "ike_avg_packet_size",
+      "esp_bytes",
+      "esp_avg_packet_size"
+    ],
+    "targets": [
+      "encryption",
+      "hash",
+      "dh_group",
+      "pfs_group"
+    ],
+    "context_columns": [
+      "repetition",
+      "traffic"
+    ],
+    "n_estimators": 300,
+    "random_state": 42,
+    "training_samples": 126
+  }
+}

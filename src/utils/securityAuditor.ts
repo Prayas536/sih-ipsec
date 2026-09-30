@@ -1,5 +1,31 @@
 import { IkeSecurityAssociation, SecurityFinding, SecurityScorecard } from '../types';
 
+function normalizedAlgorithm(value: string): string {
+  return value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+function hasAssessedEncryption(value: string, keyBits: number): boolean {
+  const normalized = normalizedAlgorithm(value);
+  const knownAead = [
+    'AES128GCM', 'AES192GCM', 'AES256GCM',
+    'AESGCM8', 'AESGCM12', 'AESGCM16',
+    'CHACHA20POLY1305',
+  ].includes(normalized);
+  const knownCbc = /^AES(128|192|256)CBC$/.test(normalized);
+  const knownWeak = ['DES', 'DESIV64', '3DES', '3DESCBC'].includes(normalized);
+  return keyBits > 0 && (knownAead || knownCbc || knownWeak);
+}
+
+function hasAssessedIntegrity(value: string): boolean {
+  const normalized = normalizedAlgorithm(value);
+  if (!normalized || normalized.includes('NOTOBSERVED') || normalized.includes('UNKNOWN')) return false;
+  return /^(HMAC)?SHA(256|384|512)$/.test(normalized)
+    || /^AUTHHMACSHA2(256|384|512)(128|192|256)$/.test(normalized)
+    || ['AEAD', 'AUTHAESXCBC96', 'AUTHAESCMAC96', 'AES128GMAC', 'AES192GMAC', 'AES256GMAC'].includes(normalized)
+    || normalized.includes('MD5')
+    || normalized.includes('SHA1');
+}
+
 export function auditIpsecSecurity(sa: IkeSecurityAssociation): SecurityScorecard {
   const findings: SecurityFinding[] = [];
   let totalScore = 100;
@@ -16,6 +42,18 @@ export function auditIpsecSecurity(sa: IkeSecurityAssociation): SecurityScorecar
       threatName: 'Negotiation Not Captured',
       description: 'The capture does not contain a decodable IKE version. No protocol security conclusion is made.',
       remediation: 'Capture the IKE_SA_INIT exchange for exact protocol evidence.',
+    });
+  } else if (sa.ikeVersion === 'IKEv2' && (!sa.proposals || sa.proposals.length === 0)) {
+    findings.push({
+      id: 'F-IKE-PARTIAL',
+      parameter: 'Key Exchange Protocol',
+      detectedValue: 'IKEv2 header observed; SA proposal not decoded',
+      recommendedValue: 'IKEv2 with captured SA_INIT transforms',
+      severity: 'Low',
+      penalty: 0,
+      threatName: 'Partial IKE Evidence',
+      description: 'The capture proves that an IKEv2 header was observed, but it does not provide a decoded security proposal. Cipher and DH conclusions remain unavailable.',
+      remediation: 'Capture the complete IKE_SA_INIT request and response, including their SA payloads.',
     });
   } else if (sa.ikeVersion === 'IKEv1') {
     const penalty = 15;
@@ -59,7 +97,7 @@ export function auditIpsecSecurity(sa: IkeSecurityAssociation): SecurityScorecar
       description: 'No decodable encryption transform was observed in the capture.',
       remediation: 'Capture an IKE_SA_INIT exchange containing the SA payload.',
     });
-  } else if (encUpper.includes('3DES') || encUpper.includes('DES')) {
+  } else if (['DES', 'DESIV64', '3DES', '3DESCBC'].includes(normalizedAlgorithm(sa.encryptionAlgorithm))) {
     const penalty = 35;
     totalScore -= penalty;
     findings.push({
@@ -74,7 +112,19 @@ export function auditIpsecSecurity(sa: IkeSecurityAssociation): SecurityScorecar
       description: '64-bit block ciphers like 3DES suffer from practical collision attacks after approximately 32 GB of data encrypted with the same key, enabling plaintext recovery.',
       remediation: 'Immediately decommission 3DES. Upgrade Phase 1 and Phase 2 proposals to AES-256-GCM or AES-128-GCM authenticated ciphers.',
     });
-  } else if (encUpper.includes('CBC')) {
+  } else if (encUpper.includes('UNKNOWN')) {
+    findings.push({
+      id: 'F-ENC-UNKNOWN-TRANSFORM',
+      parameter: 'Symmetric Encryption Cipher',
+      detectedValue: sa.encryptionAlgorithm,
+      recommendedValue: 'Known, standards-approved cipher',
+      severity: 'Low',
+      penalty: 0,
+      threatName: 'Unsupported Encryption Transform',
+      description: 'An encryption transform was observed, but this analyzer cannot map its identifier to a known algorithm.',
+      remediation: 'Use a parser version with the relevant transform registry or confirm the negotiated cipher through authorized gateway telemetry.',
+    });
+  } else if (/^AES-(128|192|256)-CBC$/.test(encUpper)) {
     const penalty = 10;
     totalScore -= penalty;
     findings.push({
@@ -88,7 +138,7 @@ export function auditIpsecSecurity(sa: IkeSecurityAssociation): SecurityScorecar
       description: 'AES-CBC requires separate HMAC hashing and is vulnerable to padding oracle attacks if implementation timing varies.',
       remediation: 'Prefer Authenticated Encryption with Associated Data (AEAD) modes like AES-GCM or ChaCha20-Poly1305.',
     });
-  } else {
+  } else if (hasAssessedEncryption(sa.encryptionAlgorithm, sa.encryptionKeyBits) && !encUpper.includes('CBC')) {
     findings.push({
       id: 'F-ENC-PASS',
       parameter: 'Symmetric Encryption Cipher',
@@ -99,6 +149,18 @@ export function auditIpsecSecurity(sa: IkeSecurityAssociation): SecurityScorecar
       threatName: 'AEAD Modern Standard Compliant',
       description: 'AES-GCM combines high-speed hardware-accelerated encryption with integrated integrity verification (GMAC).',
       remediation: 'Maintain AES-GCM.',
+    });
+  } else {
+    findings.push({
+      id: 'F-ENC-UNKNOWN-TRANSFORM',
+      parameter: 'Symmetric Encryption Cipher',
+      detectedValue: sa.encryptionAlgorithm,
+      recommendedValue: 'A cipher explicitly assessed by this rule set',
+      severity: 'Low',
+      penalty: 0,
+      threatName: 'Unsupported Encryption Transform',
+      description: 'A non-empty encryption value was observed, but this rule set does not assess it. No security pass is assigned.',
+      remediation: 'Confirm the selected transform and key size using an updated transform registry or authorized gateway telemetry.',
     });
   }
 
@@ -115,7 +177,19 @@ export function auditIpsecSecurity(sa: IkeSecurityAssociation): SecurityScorecar
       description: 'No decodable Diffie-Hellman transform was observed in the capture.',
       remediation: 'Capture an IKE_SA_INIT exchange containing the SA payload.',
     });
-  } else if (sa.dhGroupNumber < 14 || sa.dhBits < 2048) {
+  } else if (sa.dhBits === 0 || sa.dhGroup.toUpperCase().includes('UNKNOWN')) {
+    findings.push({
+      id: 'F-DH-UNKNOWN-TRANSFORM',
+      parameter: 'Diffie-Hellman Key Exchange',
+      detectedValue: sa.dhGroup,
+      recommendedValue: 'Known DH group with documented strength',
+      severity: 'Low',
+      penalty: 0,
+      threatName: 'Unsupported DH Transform',
+      description: 'A DH transform was observed, but its group strength is not known to this analyzer.',
+      remediation: 'Confirm the DH group through an updated transform registry or authorized gateway telemetry.',
+    });
+  } else if (sa.dhGroupNumber < 14 || (sa.dhGroupNumber < 19 && sa.dhBits < 2048)) {
     const penalty = 30;
     totalScore -= penalty;
     findings.push({
@@ -202,6 +276,30 @@ export function auditIpsecSecurity(sa: IkeSecurityAssociation): SecurityScorecar
       description: 'MD5 and SHA-1 have proven theoretical and practical collision attacks. They are strictly prohibited under modern cryptographic standards.',
       remediation: 'Upgrade integrity transforms to HMAC-SHA256-128 or use AEAD authenticated ciphers.',
     });
+  } else if (authUpper.includes('UNKNOWN')) {
+    findings.push({
+      id: 'F-AUTH-UNKNOWN-TRANSFORM',
+      parameter: 'Integrity / Authentication Algorithm',
+      detectedValue: sa.authIntegrityAlgorithm,
+      recommendedValue: 'Known HMAC-SHA256+ or AEAD',
+      severity: 'Low',
+      penalty: 0,
+      threatName: 'Unsupported Integrity Transform',
+      description: 'An integrity transform was observed, but its algorithm is not mapped by this analyzer.',
+      remediation: 'Confirm the integrity algorithm through an updated transform registry or authorized gateway telemetry.',
+    });
+  } else if (!hasAssessedIntegrity(sa.authIntegrityAlgorithm)) {
+    findings.push({
+      id: 'F-AUTH-UNKNOWN-TRANSFORM',
+      parameter: 'Integrity / Authentication Algorithm',
+      detectedValue: sa.authIntegrityAlgorithm,
+      recommendedValue: 'An integrity transform explicitly assessed by this rule set',
+      severity: 'Low',
+      penalty: 0,
+      threatName: 'Unsupported Integrity Transform',
+      description: 'A non-empty integrity value was observed, but this rule set does not assess it. No security pass is assigned.',
+      remediation: 'Confirm the selected transform using an updated transform registry or authorized gateway telemetry.',
+    });
   }
 
   // 6. Key Lifetime
@@ -250,31 +348,66 @@ export function auditIpsecSecurity(sa: IkeSecurityAssociation): SecurityScorecar
     });
   }
 
-  // Normalize Total Score
+  // Keep observed risk separate from evidence completeness; unknown controls earn no score credit.
   totalScore = Math.max(0, Math.min(100, totalScore));
+  const riskPenalty = 100 - totalScore;
+  const scoreEvidence = [
+    { weight: 10, known: sa.ikeVersion !== 'Not observed in capture' },
+    { weight: 20, known: hasAssessedEncryption(sa.encryptionAlgorithm, sa.encryptionKeyBits) },
+    { weight: 15, known: sa.dhGroupNumber > 0 && !sa.dhGroup.toUpperCase().includes('UNKNOWN') },
+    { weight: 15, known: hasAssessedIntegrity(sa.authIntegrityAlgorithm) },
+    { weight: 15, known: sa.pfsEnabled !== null },
+    { weight: 10, known: sa.keyLifetimeSeconds !== null },
+    { weight: 15, known: sa.replayProtection !== null },
+  ];
+  const evidenceCoveragePercent = scoreEvidence.reduce(
+    (weight, item) => weight + (item.known ? item.weight : 0),
+    0,
+  );
+  const assessmentStatus: SecurityScorecard['assessmentStatus'] = evidenceCoveragePercent === 100
+    ? 'COMPLETE'
+    : evidenceCoveragePercent === 0 ? 'INSUFFICIENT' : 'PARTIAL';
+  totalScore = Math.round(totalScore * evidenceCoveragePercent / 100);
 
-  let rating: SecurityScorecard['rating'] = 'Critical';
-  if (totalScore >= 90) rating = 'Hardened';
-  else if (totalScore >= 75) rating = 'Secure';
-  else if (totalScore >= 55) rating = 'Moderate';
-  else if (totalScore >= 35) rating = 'Weak';
-  else rating = 'Critical';
+  let rating: SecurityScorecard['rating'] = evidenceCoveragePercent === 0 ? 'Not Rated' : 'Critical';
+  if (evidenceCoveragePercent > 0 && totalScore >= 90) rating = 'Hardened';
+  else if (evidenceCoveragePercent > 0 && totalScore >= 75) rating = 'Secure';
+  else if (evidenceCoveragePercent > 0 && totalScore >= 55) rating = 'Moderate';
+  else if (evidenceCoveragePercent > 0 && totalScore >= 35) rating = 'Weak';
 
   // Standards Compliance
   const hasCritical = findings.some((f) => f.severity === 'Critical');
   const hasHigh = findings.some((f) => f.severity === 'High');
+  const hasNistLifetimeViolation = findings.some((f) => f.id === 'F-TIME-01');
 
-  const complianceNist = !hasCritical && !hasHigh && sa.ikeVersion === 'IKEv2';
-  const complianceRfc8221 = !hasCritical && !authUpper.includes('MD5') && !authUpper.includes('SHA1');
-  const complianceNsaCnsa = totalScore >= 90 && sa.encryptionKeyBits === 256 && sa.dhGroupNumber >= 19;
+  const cryptoEvidenceKnown =
+    hasAssessedEncryption(sa.encryptionAlgorithm, sa.encryptionKeyBits) &&
+    hasAssessedIntegrity(sa.authIntegrityAlgorithm) &&
+    sa.dhGroupNumber > 0;
+  const nistEvidenceComplete = cryptoEvidenceKnown && sa.ikeVersion !== 'Not observed in capture' &&
+    sa.pfsEnabled !== null && sa.keyLifetimeSeconds !== null && sa.replayProtection !== null;
+  const rfcEvidenceComplete = cryptoEvidenceKnown;
+  const cnsaEvidenceComplete = cryptoEvidenceKnown && sa.encryptionKeyBits > 0 && sa.dhGroupNumber > 0;
+  const complianceNist = !nistEvidenceComplete
+    ? null
+    : !hasCritical && !hasHigh && !hasNistLifetimeViolation && sa.ikeVersion === 'IKEv2' && sa.pfsEnabled === true && sa.replayProtection === true;
+  const complianceRfc8221 = !rfcEvidenceComplete
+    ? null
+    : !hasCritical && !authUpper.includes('MD5') && !authUpper.includes('SHA1');
+  const complianceNsaCnsa = !cnsaEvidenceComplete
+    ? null
+    : totalScore >= 90 && sa.encryptionKeyBits === 256 && sa.dhGroupNumber >= 19;
 
   return {
     totalScore,
+    riskPenalty,
+    evidenceCoveragePercent,
+    assessmentStatus,
     rating,
     findings,
     complianceNist,
     complianceRfc8221,
     complianceNsaCnsa,
-    metadataLeakageRisk: sa.operationalMode === 'Transport Mode' ? 'High' : 'Medium',
+    metadataLeakageRisk: sa.operationalMode === 'Transport Mode' ? 'High' : sa.operationalMode === 'Tunnel Mode' ? 'Medium' : 'Unknown',
   };
 }
