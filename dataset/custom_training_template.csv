@@ -1,0 +1,6 @@
+# IPsec ML Training Data Template
+# Place your extracted features and target labels below.
+# Features are extracted using: python feature_extractor/extractor.py <pcap_file>
+source_pcap,repetition,traffic,packet_count,total_bytes,avg_packet_size,min_packet_size,max_packet_size,capture_duration_seconds,udp_packet_count,tcp_packet_count,icmp_packet_count,udp_500_count,udp_4500_count,ike_packet_count,esp_packet_count,ike_sa_init_count,ike_auth_count,create_child_sa_count,informational_count,ike_unknown_count,ike_request_count,ike_response_count,ike_bytes,ike_avg_packet_size,esp_bytes,esp_avg_packet_size,unique_src_ips,unique_dst_ips,src_dst_pairs,ike_version_detected,encryption,hash,dh_group,pfs_group
+sample_tunnel_01.pcap,1,ICMP,50,9200,184.0,120,510,32.5,6,0,0,6,0,6,44,2,2,0,2,0,3,3,1812,302.0,7388,167.9,2,2,2,IKEv2,AES256,SHA256,DH14,NOPFS
+sample_tunnel_02.pcap,1,TCP,120,45000,375.0,90,1460,45.2,8,112,0,8,0,8,112,2,2,2,2,0,4,4,2420,302.5,42580,380.2,2,2,2,IKEv2,AES256,SHA384,DH19,PFS19

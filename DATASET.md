@@ -4,6 +4,9 @@ The included cryptographic inference dataset comes from controlled synthetic IPs
 
 | Artifact | Purpose | Size |
 | --- | --- | ---: |
+| [`dataset/ipsec_crypto_dataset.csv`](dataset/ipsec_crypto_dataset.csv) | Master cryptographic training dataset | 157 rows |
+| [`dataset/network_traffic_workload_dataset.csv`](dataset/network_traffic_workload_dataset.csv) | Workload classification dataset (5 classes) | 457 rows |
+| [`dataset/custom_training_template.csv`](dataset/custom_training_template.csv) | Template for custom PCAP training data | — |
 | [`pcap_factory/captures/`](pcap_factory/captures/) | Successful source PCAPs used to extract features | 157 captures |
 | [`feature_extractor/dataset.csv`](feature_extractor/dataset.csv) | Extracted capture features with source filename and labels | 157 rows |
 | [`feature_extractor/ml_dataset.csv`](feature_extractor/ml_dataset.csv) | ML table with source filename removed | 157 rows |
